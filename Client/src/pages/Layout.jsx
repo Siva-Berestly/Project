@@ -1,0 +1,160 @@
+import { NavLink, Outlet } from "react-router-dom";
+import { IoIosArrowDown } from "react-icons/io";
+import { HiMenu, HiX } from "react-icons/hi";
+import { FiSun, FiMoon } from "react-icons/fi";
+import { useState } from "react";
+import { FaPlus, FaMinus } from "react-icons/fa";
+
+const Layout = () => {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true);
+    const [fontScale, setFontScale] = useState(1);
+
+    const toggleTheme = () => {
+        setIsDarkMode(!isDarkMode);
+    };
+
+    const increaseFontSize = () => {
+        setFontScale(prev => Math.min(prev + 0.1, 1.5));
+    };
+
+    const decreaseFontSize = () => {
+        setFontScale(prev => Math.max(prev - 0.1, 0.8));
+    };
+
+    const resetFontSize = () => {
+        setFontScale(1);
+    };
+
+    const themeClasses = {
+        navbar: isDarkMode ? 'bg-[#202124] text-white' : 'bg-white text-[#202124]',
+        mainContent: isDarkMode ? 'bg-[#202124] text-white' : 'bg-white text-[#202124]',
+        dropdown: isDarkMode ? 'bg-[#202124] border-gray-600' : 'bg-white border-gray-300',
+        dropdownHover: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100',
+        fontControls: isDarkMode ? 'text-white border-white' : 'text-[#202124] border-[#202124]',
+    };
+
+    return (
+        <>
+            {/* Navbar */}
+            <div className={`flex justify-between items-center p-4 px-5 border-b-1 relative ${themeClasses.navbar}`}>
+                <div className="flex items-center justify-between gap-2 w-full lg:w-auto">
+                    <h1 className="text-base sm:text-2xl poppins-medium">Logo</h1>
+                    <div className="flex items-center gap-4 lg:hidden">
+                        <div className="flex items-center gap-2">
+                            <button onClick={decreaseFontSize} className={`flex text-base poppins-bold items-center p-2 border rounded-lg ${themeClasses.fontControls}`}>
+                                <FaMinus size={13} /> A
+                            </button>
+                            <button onClick={resetFontSize} className={`border text-base poppins-bold rounded-lg px-2 py-1 ${themeClasses.fontControls}`}>
+                                Reset
+                            </button>
+                            <button onClick={increaseFontSize} className={`flex text-base poppins-bold items-center p-2 border rounded-lg ${themeClasses.fontControls}`}>
+                                <FaPlus size={13} /> A
+                            </button>
+                        </div>
+                        <button onClick={toggleTheme}>
+                            {isDarkMode ? <FiSun size={24} /> : <FiMoon size={24} />}
+                        </button>
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        >
+                            {isMobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Desktop Navigation */}
+                <div className={`lg:flex items-center justify-between flex-grow ${isMobileMenuOpen ? `absolute top-full left-0 right-0 ${themeClasses.navbar} border-b` : 'hidden'}`}>
+                    <nav className="lg:ml-12">
+                        <ul className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-8 poppins-regular p-4 lg:p-0">
+                            <li>
+                                <NavLink to="/"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        isActive ? "poppins-bold underline" : "hover:underline"
+                                    }>Home</NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/courses"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        isActive ? "poppins-bold underline" : "hover:underline"
+                                    }>Courses</NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/quiz"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        isActive ? "poppins-bold underline" : "hover:underline"
+                                    }>Quiz</NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/help"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        isActive ? "poppins-bold underline" : "hover:underline"
+                                    }>Help</NavLink>
+                            </li>
+                        </ul>
+                    </nav>
+
+                    {/* Profile Settings and Theme Toggle */}
+                    <div className="flex items-center gap-6 p-4 lg:p-0">
+                        <div className="hidden lg:flex items-center gap-2">
+                            <button onClick={decreaseFontSize} className={`flex text-lg poppins-bold items-center p-2 border rounded-lg ${themeClasses.fontControls}`}>
+                                <FaMinus size={16} /> A
+                            </button>
+                            <button onClick={resetFontSize} className={`border rounded-lg p-2 poppins-bold ${themeClasses.fontControls}`}>
+                                Reset
+                            </button>
+                            <button onClick={increaseFontSize} className={`flex text-lg poppins-bold items-center p-2 border rounded-lg ${themeClasses.fontControls}`}>
+                                <FaPlus size={16} /> A
+                            </button>
+                        </div>
+                        <button onClick={toggleTheme} className="hidden lg:flex items-center gap-2 poppins-medium hover:underline">
+                            {isDarkMode ? <FiSun size={24} /> : <FiMoon size={24} />}
+                            <span>{isDarkMode ? 'Light' : 'Dark'} Mode</span>
+                        </button>
+                        <div className="poppins-semibold cursor-pointer relative">
+                            <h3 className="flex items-center gap-2" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                                My Profile <IoIosArrowDown className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                            </h3>
+
+                            {/* Dropdown Menu */}
+                            {isDropdownOpen && (
+                                <div className={`absolute right-0 mt-2 w-48 ${themeClasses.dropdown} border rounded-lg shadow-lg py-2`}>
+                                    <a href="/profile" className={`block px-4 py-2 ${themeClasses.dropdownHover}`}>View Profile</a>
+                                    <a href="/settings" className={`block px-4 py-2 ${themeClasses.dropdownHover}`}>Settings</a>
+                                    <hr className="my-2 border-gray-600" />
+                                    <button className={`block w-full text-left px-4 py-2 ${themeClasses.dropdownHover} text-red-400`}>
+                                        Sign Out
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <main style={{ fontSize: `${fontScale}rem` }}>
+                <div className={`${themeClasses.mainContent} border-b-1`}>
+                    <div className="container mx-auto w-screen overflow-x-hidden">
+                        <Outlet context={{ isDarkMode, fontScale }} />
+                    </div>
+                </div>
+            </main>
+
+            {/* Footer */}
+            <div className={themeClasses.navbar}>
+                <div className="bg-[#202124] text-white p-4 text-center">
+                    <p className="poppins-light text-sm">&copy; 2025 Product_Name by <span className="italic">Sivanesan</span></p>
+                    <p className="poppins-light text-sm">Student of Bharathidasan University</p>
+                </div>
+            </div>
+        </>
+    )
+}
+
+export default Layout
