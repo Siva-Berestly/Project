@@ -1,8 +1,9 @@
 import { useOutletContext, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaPlus, FaMinus, FaUndo } from "react-icons/fa";
 
 const Home = () => {
+  const [courses, setCourses] = useState([]);
   const { isDarkMode } = useOutletContext();
   const [zoomLevel, setZoomLevel] = useState(100);
 
@@ -27,43 +28,22 @@ const Home = () => {
       : 'bg-white text-[#202124] border-[#202124] hover:bg-[#202124] hover:text-white',
   };
 
-  const courses = [
-    {
-      name: "Computer Science",
-      sections: [
-        {
-          name: "What is Internet?",
-          steps: [
-            {
-              id: 1,
-              title: 'Step 1',
-              description: 'Introduction to Full Stack Development',
-              textContent: 'This is step 1 content',
-              videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-            }
-          ]
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/courses');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-      ]
-    },
-    {
-      name: "Mathematics",
-      sections: [
-        {
-          name: "Basics of Mathematics",
-          steps: [
-            {
-              id: 1,
-              title: 'Title 1',
-              description: 'Introduction to Mathematics',
-              textContent: 'This is step 1 content',
-              videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-            }
-          ]
-        }
-      ]
+        const data = await response.json();
+        setCourses(data);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      }
     }
-  ];
-
+    fetchCourses();
+  }, []);
+  
   const lastLearning = {
     courseName: "Computer Science",
     sectionName: "What is Internet?",
@@ -87,16 +67,17 @@ const Home = () => {
             </button>
           </div>
 
-          <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>Quick Access Tools</h1>
-          {/* Quick Access Tools */}
+          <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>Last Learning</h1>
+          {/* Last Learning */}
           <div className={`${themeClasses.card} border-1 p-6 rounded-lg mb-10`}>
-            <h2 className={`text-xl text-center poppins-semibold mb-4 ${themeClasses.text}`}>Continue Learning</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
-                <p className="text-center mx-10 poppins-medium mb-4">Mathematics</p>
-                <p className="text-center mx-10 poppins-regular mb-4">Topic: Algebra Basics</p>
-                <Link to={`/subcourse/mathematics`} className={`border-2 px-5 rounded-lg poppins-medium cursor-pointer mx-auto transition ${themeClasses.button}`}>Resume</Link>
-              </div>
+            <h2 className={`text-xl text-center poppins-semibold mb-4 ${themeClasses.text}`}>Continue from where you left off</h2>
+            <div className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
+              <p className="text-lg underline text-center mx-10 poppins-medium mb-4">{lastLearning.courseName}</p>
+              <p className="text-center mx-10 poppins-regular mb-4">{lastLearning.sectionName}</p>
+              <p className="text-center mx-10 poppins-regular mb-4">{lastLearning.stepTitle}</p>
+              <Link to={`/subcourse/${lastLearning.courseName.toLowerCase()}`} className={`border-2 px-5 rounded-lg poppins-medium cursor-pointer mx-auto transition ${themeClasses.button}`}>
+                Resume
+              </Link>
             </div>
           </div>
 
@@ -116,19 +97,7 @@ const Home = () => {
             </div>
           </div>
 
-          <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>Last Learning</h1>
-          {/* Last Learning */}
-          <div className={`${themeClasses.card} border-1 p-6 rounded-lg mb-10`}>
-            <h2 className={`text-xl text-center poppins-semibold mb-4 ${themeClasses.text}`}>Continue from where you left off</h2>
-            <div className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
-              <p className="text-center mx-10 poppins-medium mb-4">{lastLearning.courseName}</p>
-              <p className="text-center mx-10 poppins-regular mb-4">{lastLearning.sectionName}</p>
-              <p className="text-center mx-10 poppins-regular mb-4">{lastLearning.stepTitle}</p>
-              <Link to={`/subcourse/${lastLearning.courseName.toLowerCase()}`} className={`border-2 px-5 rounded-lg poppins-medium cursor-pointer mx-auto transition ${themeClasses.button}`}>
-                Resume
-              </Link>
-            </div>
-          </div>
+          
 
           {/* Quiz */}
           <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>Quiz</h1>

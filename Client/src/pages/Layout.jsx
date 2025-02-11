@@ -53,6 +53,7 @@ const Layout = () => {
             window.removeEventListener("scroll", toggleVisibility);
             window.removeEventListener('keydown', handleKeyDown);
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const themeClasses = {

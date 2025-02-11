@@ -19,80 +19,23 @@ const SubCourse = () => {
         setZoomLevel(100);
     };
 
-    const courses = [
-        {
-            name: "Computer Science",
-            sections: [
-                {
-                    name: "What is Internet?",
-                    steps: [
-                        {
-                            id: 1,
-                            title: 'Step 1',
-                            description: 'Desc 1',
-                            textContent: 'This is step 1 content',
-                            videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-                            status: 'current',
-                        },
-                        {
-                            id: 2,
-                            title: 'Step 2',
-                            description: 'Desc 2',
-                            textContent: 'This is step 2 content',
-                            videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-                            status: 'current',
-                        }
-                    ]
-                },
-                {
-                    name: "How Internet Works?",
-                    steps: [
-                        {
-                            id: 3,
-                            title: 'Step 3',
-                            description: 'Desc 1',
-                            textContent: 'This is step 1 content',
-                            videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-                            status: 'current',
-                        },
-                        {
-                            id: 4,
-                            title: 'Step 4',
-                            description: 'Desc 2',
-                            textContent: 'This is step 2 content',
-                            videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-                            status: 'current',
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            name: "Mathematics",
-            sections: [
-                {
-                    name: "Basics of Mathematics",
-                    steps: [
-                        {
-                            id: 1,
-                            title: 'Title 1',
-                            description: 'Introduction to Mathematics',
-                            textContent: 'This is step 1 content',
-                            videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-                        }
-                    ]
-                }
-            ]
-        }
-    ];
-
     const [course, setCourse] = useState(null);
 
     useEffect(() => {
-        const foundCourse = courses.find(c => c.name.toLowerCase() === courseName.toLowerCase());
-        setCourse(foundCourse);
-        console.log("Course Name:", courseName);
-        console.log("Found Course:", foundCourse);
+        const fetchCourse = async () => {
+            try {
+                const response = await fetch(`http://localhost:3000/api/courses?name=${courseName}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                setCourse(data[0]);
+            } catch (error) {
+                console.error('Error fetching course:', error);
+            }
+        };
+
+        fetchCourse();
     }, [courseName]);
 
     const [selectedOption, setSelectedOption] = useState("text");
@@ -132,18 +75,18 @@ const SubCourse = () => {
                         </button>
                     </div>
 
+                    <h3 className="text-xl text-center mx-10 poppins-medium mb-5">{course.name}</h3>
                     <div className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
-                        <p className="text-center mx-10 poppins-medium mb-4">{course.name}</p>
-                        <div className="mt-4">
+                        <div className="mb-5">
                             {course.sections.map((section, sectionIndex) => (
-                                <div key={sectionIndex} className="mt-4">
+                                <div key={sectionIndex} className="mt-2">
                                     <p className="text-center poppins-medium">{section.name}</p>
-                                    <div className="mt-2">
+                                    <div className="mt-3 mb-10">
                                         {section.steps.map((step, stepIndex) => (
-                                            <div key={stepIndex} className="mt-2">
+                                            <div key={stepIndex} className="mt-3">
                                                 <button
                                                     onClick={() => toggleStep(step.id)}
-                                                    className={`w-full text-left px-4 py-2 border rounded-lg poppins-medium cursor-pointer transition ${themeClasses.button} ${openStep === step.id ? 'bg-blue-500 text-white' : ''}`}
+                                                    className={`w-full text-center px-4 py-2 border rounded-lg poppins-medium cursor-pointer transition ${themeClasses.button} ${openStep === step.id ? `${themeClasses.text}` : ''}`}
                                                 >
                                                     {step.title}
                                                 </button>

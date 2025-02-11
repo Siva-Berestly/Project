@@ -1,10 +1,11 @@
 import { useOutletContext, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaPlus, FaMinus, FaUndo } from "react-icons/fa";
 
 const Courses = () => {
     const { isDarkMode } = useOutletContext();
     const [zoomLevel, setZoomLevel] = useState(100);
+    const [courses, setCourses] = useState([]);
 
     const increaseZoom = () => {
         setZoomLevel(prev => Math.min(prev + 10, 150));
@@ -18,26 +19,22 @@ const Courses = () => {
         setZoomLevel(100);
     };
 
-    const courses = [
-        {
-            name: "Computer Science",
-            sections: [
-                {
-                    name: "What is Internet?",
-                    steps: [
-                        {
-                            id: 1,
-                            title: 'Step 1',
-                            description: 'Introduction to Full Stack Development',
-                            textContent: 'This is step 1 content',
-                            videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-                            status: 'current',
-                        }
-                    ]
+    useEffect(() => {
+        const fetchCourses = async () => {
+            try {
+                const response = await fetch('http://localhost:3000/api/courses');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-            ]
-        }
-    ];
+                const data = await response.json();
+                setCourses(data);
+            } catch (error) {
+                console.error('Error fetching courses:', error);
+            }
+        };
+
+        fetchCourses();
+    }, []);
 
     const themeClasses = {
         card: isDarkMode ? 'bg-[#202124] text-white border-white' : 'bg-white text-[#202124] border-[#202124]',
