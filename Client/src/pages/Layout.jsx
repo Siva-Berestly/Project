@@ -1,38 +1,65 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { IoIosArrowDown } from "react-icons/io";
 import { HiMenu, HiX } from "react-icons/hi";
 import { FiSun, FiMoon } from "react-icons/fi";
-import { useState } from "react";
-import { FaPlus, FaMinus } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { FaArrowUp } from "react-icons/fa"; // Removed FaPlus, FaMinus
 
 const Layout = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
-    const [fontScale, setFontScale] = useState(1);
+    const [isVisible, setIsVisible] = useState(false);
+    const navigate = useNavigate();
 
     const toggleTheme = () => {
         setIsDarkMode(!isDarkMode);
     };
 
-    const increaseFontSize = () => {
-        setFontScale(prev => Math.min(prev + 0.1, 1.5));
+    const toggleVisibility = () => {
+        if (window.pageYOffset > 300) {
+            setIsVisible(true);
+        } else {
+            setIsVisible(false);
+        }
     };
 
-    const decreaseFontSize = () => {
-        setFontScale(prev => Math.max(prev - 0.1, 0.8));
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
     };
 
-    const resetFontSize = () => {
-        setFontScale(1);
+    const handleKeyDown = (event) => {
+        const navLinks = document.querySelectorAll('nav ul li a');
+        let currentIndex = Array.from(navLinks).findIndex(link => link === document.activeElement);
+
+        if (event.key === 'ArrowRight') {
+            currentIndex = (currentIndex + 1) % navLinks.length;
+            navLinks[currentIndex].focus();
+            navigate(navLinks[currentIndex].getAttribute('href'));
+        } else if (event.key === 'ArrowLeft') {
+            currentIndex = (currentIndex - 1 + navLinks.length) % navLinks.length;
+            navLinks[currentIndex].focus();
+            navigate(navLinks[currentIndex].getAttribute('href'));
+        }
     };
+
+    useEffect(() => {
+        window.addEventListener("scroll", toggleVisibility);
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener("scroll", toggleVisibility);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
 
     const themeClasses = {
         navbar: isDarkMode ? 'bg-[#202124] text-white' : 'bg-white text-[#202124]',
         mainContent: isDarkMode ? 'bg-[#202124] text-white' : 'bg-white text-[#202124]',
         dropdown: isDarkMode ? 'bg-[#202124] border-gray-600' : 'bg-white border-gray-300',
         dropdownHover: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100',
-        fontControls: isDarkMode ? 'text-white border-white' : 'text-[#202124] border-[#202124]',
     };
 
     return (
@@ -42,17 +69,6 @@ const Layout = () => {
                 <div className="flex items-center justify-between gap-2 w-full lg:w-auto">
                     <h1 className="text-base sm:text-2xl poppins-medium">Logo</h1>
                     <div className="flex items-center gap-4 lg:hidden">
-                        <div className="flex items-center gap-2">
-                            <button onClick={decreaseFontSize} className={`flex text-base poppins-bold items-center p-2 border rounded-lg ${themeClasses.fontControls}`}>
-                                <FaMinus size={13} /> A
-                            </button>
-                            <button onClick={resetFontSize} className={`border text-base poppins-bold rounded-lg px-2 py-1 ${themeClasses.fontControls}`}>
-                                Reset
-                            </button>
-                            <button onClick={increaseFontSize} className={`flex text-base poppins-bold items-center p-2 border rounded-lg ${themeClasses.fontControls}`}>
-                                <FaPlus size={13} /> A
-                            </button>
-                        </div>
                         <button onClick={toggleTheme}>
                             {isDarkMode ? <FiSun size={24} /> : <FiMoon size={24} />}
                         </button>
@@ -71,9 +87,8 @@ const Layout = () => {
                             <li>
                                 <NavLink to="/"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className={({ isActive }) =>
-                                        isActive ? "poppins-bold underline" : "hover:underline"
-                                    }>Home</NavLink>
+                                    className={({ isActive }) => isActive ? "poppins-bold underline" : "hover:underline"}
+                                >Home</NavLink>
                             </li>
                             <li>
                                 <NavLink to="/courses"
@@ -101,17 +116,6 @@ const Layout = () => {
 
                     {/* Profile Settings and Theme Toggle */}
                     <div className="flex items-center gap-6 p-4 lg:p-0">
-                        <div className="hidden lg:flex items-center gap-2">
-                            <button onClick={decreaseFontSize} className={`flex text-lg poppins-bold items-center p-2 border rounded-lg ${themeClasses.fontControls}`}>
-                                <FaMinus size={16} /> A
-                            </button>
-                            <button onClick={resetFontSize} className={`border rounded-lg p-2 poppins-bold ${themeClasses.fontControls}`}>
-                                Reset
-                            </button>
-                            <button onClick={increaseFontSize} className={`flex text-lg poppins-bold items-center p-2 border rounded-lg ${themeClasses.fontControls}`}>
-                                <FaPlus size={16} /> A
-                            </button>
-                        </div>
                         <button onClick={toggleTheme} className="hidden lg:flex items-center gap-2 poppins-medium hover:underline">
                             {isDarkMode ? <FiSun size={24} /> : <FiMoon size={24} />}
                             <span>{isDarkMode ? 'Light' : 'Dark'} Mode</span>
@@ -123,12 +127,11 @@ const Layout = () => {
 
                             {/* Dropdown Menu */}
                             {isDropdownOpen && (
-                                <div className={`absolute right-0 mt-2 w-48 ${themeClasses.dropdown} border rounded-lg shadow-lg py-2`}>
-                                    <a href="/profile" className={`block px-4 py-2 ${themeClasses.dropdownHover}`}>View Profile</a>
+                                <div className={`absolute left-0 right-0 mt-2 w-auto ${themeClasses.dropdown} border rounded-lg shadow-lg py-2`}>
                                     <a href="/settings" className={`block px-4 py-2 ${themeClasses.dropdownHover}`}>Settings</a>
-                                    <hr className="my-2 border-gray-600" />
+                                    <hr />
                                     <button className={`block w-full text-left px-4 py-2 ${themeClasses.dropdownHover} text-red-400`}>
-                                        Sign Out
+                                        Sign&nbsp;Out
                                     </button>
                                 </div>
                             )}
@@ -138,13 +141,20 @@ const Layout = () => {
             </div>
 
             {/* Main Content */}
-            <main style={{ fontSize: `${fontScale}rem` }}>
+            <main >
                 <div className={`${themeClasses.mainContent} border-b-1`}>
                     <div className="container mx-auto w-screen overflow-x-hidden">
-                        <Outlet context={{ isDarkMode, fontScale }} />
+                        <Outlet context={{ isDarkMode}} />
                     </div>
                 </div>
             </main>
+
+            {/* Go to Top Button */}
+            {isVisible && (
+                <button onClick={scrollToTop} className="fixed bottom-4 right-4 p-3 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-700 transition duration-300">
+                    <FaArrowUp size={20} />
+                </button>
+            )}
 
             {/* Footer */}
             <div className={themeClasses.navbar}>
