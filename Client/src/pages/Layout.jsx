@@ -98,13 +98,13 @@ const Layout = () => {
                                         isActive ? "poppins-bold underline" : "hover:underline"
                                     }>Courses</NavLink>
                             </li>
-                            <li>
+                            {/* <li>
                                 <NavLink to="/quiz"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className={({ isActive }) =>
                                         isActive ? "poppins-bold underline" : "hover:underline"
                                     }>Quiz</NavLink>
-                            </li>
+                            </li> */}
                             <li>
                                 <NavLink to="/help"
                                     onClick={() => setIsMobileMenuOpen(false)}

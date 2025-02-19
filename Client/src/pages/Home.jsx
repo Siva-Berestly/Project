@@ -26,6 +26,12 @@ const Home = () => {
     button: isDarkMode
       ? 'bg-[#202124] text-white border-white hover:bg-white hover:text-[#202124]'
       : 'bg-white text-[#202124] border-[#202124] hover:bg-[#202124] hover:text-white',
+    static_button: isDarkMode
+      ? 'bg-blue-700 border-white border-2 transition hover:bg-blue-600 text-white'
+      : 'bg-blue-700 border-white border-2 transition hover:bg-blue-600 text-white',
+    activeOptionButton: isDarkMode
+      ? 'bg-blue-700 border-white border-2 transition hover:bg-blue-600 text-white'
+      : 'bg-blue-700 border-white border-2 transition hover:bg-blue-600 text-white',
   };
 
   useEffect(() => {
@@ -43,7 +49,7 @@ const Home = () => {
     }
     fetchCourses();
   }, []);
-  
+
   const lastLearning = {
     courseName: "Computer Science",
     sectionName: "What is Internet?",
@@ -67,17 +73,24 @@ const Home = () => {
             </button>
           </div>
 
-          <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>Last Learning</h1>
-          {/* Last Learning */}
-          <div className={`${themeClasses.card} border-1 p-6 rounded-lg mb-10`}>
-            <h2 className={`text-xl text-center poppins-semibold mb-4 ${themeClasses.text}`}>Continue from where you left off</h2>
-            <div className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
-              <p className="text-lg underline text-center mx-10 poppins-medium mb-4">{lastLearning.courseName}</p>
-              <p className="text-center mx-10 poppins-regular mb-4">{lastLearning.sectionName}</p>
-              <p className="text-center mx-10 poppins-regular mb-4">{lastLearning.stepTitle}</p>
-              <Link to={`/subcourse/${lastLearning.courseName.toLowerCase()}`} className={`border-2 px-5 rounded-lg poppins-medium cursor-pointer mx-auto transition ${themeClasses.button}`}>
-                Resume
-              </Link>
+          <div>
+            <div>
+              <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>Last Learning</h1>
+              {/* Last Learning */}
+              <div className={`${themeClasses.card} border-1 p-6 rounded-lg mb-10`}>
+                <h2 className={`text-xl text-center poppins-semibold mb-4 ${themeClasses.text}`}>Continue from where you left off</h2>
+                <div className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
+                  <p className="text-lg underline text-center mx-10 poppins-medium mb-4">{lastLearning.courseName}</p>
+                  <p className="text-center mx-10 poppins-regular mb-4">{lastLearning.sectionName}</p>
+                  <p className="text-center mx-10 poppins-regular mb-4">{lastLearning.stepTitle}</p>
+                  <Link to={`/subcourse/${lastLearning.courseName.toLowerCase()}`} className={`p-2 px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto ${themeClasses.static_button}`}>
+                    Resume
+                  </Link>
+                </div>
+              </div>
+            </div>
+            <div>
+
             </div>
           </div>
 
@@ -89,7 +102,7 @@ const Home = () => {
               {courses.map((course, index) => (
                 <div key={index} className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
                   <p className="text-center mx-10 poppins-medium mb-4">{course.name}</p>
-                  <Link to={`/subcourse/${course.name.toLowerCase()}`} className={`border-2 px-5 rounded-lg poppins-medium cursor-pointer mx-auto transition ${themeClasses.button}`}>
+                  <Link to={`/subcourse/${course.name.toLowerCase()}`} className={`p-2 px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto ${themeClasses.static_button}`}>
                     Start Learning
                   </Link>
                 </div>
@@ -97,9 +110,9 @@ const Home = () => {
             </div>
           </div>
 
-          
 
-          {/* Quiz */}
+
+          {/* Quiz
           <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>Quiz</h1>
           <div className={`${themeClasses.card} border-1 p-6 rounded-lg mb-10`}>
             <h2 className={`text-xl text-center poppins-semibold mb-4 ${themeClasses.text}`}>Test Your Skills</h2>
@@ -123,7 +136,7 @@ const Home = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </div>  */}
         </div>
       </div>
     </>

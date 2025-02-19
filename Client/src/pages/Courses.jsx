@@ -41,9 +41,15 @@ const Courses = () => {
         text: isDarkMode ? 'text-white' : 'text-[#202124]',
         scheduleText: isDarkMode ? 'text-gray-300' : 'text-gray-600',
         button: isDarkMode
-            ? 'bg-[#202124] text-white border-white hover:bg-white hover:text-[#202124]'
-            : 'bg-white text-[#202124] border-[#202124] hover:bg-[#202124] hover:text-white',
-    };
+          ? 'bg-[#202124] text-white border-white hover:bg-white hover:text-[#202124]'
+          : 'bg-white text-[#202124] border-[#202124] hover:bg-[#202124] hover:text-white',
+        static_button: isDarkMode
+          ? 'bg-blue-700 border-white border-2 transition hover:bg-blue-600 text-white'
+          : 'bg-blue-700 border-white border-2 transition hover:bg-blue-600 text-white',
+        activeOptionButton: isDarkMode
+          ? 'bg-blue-700 border-white border-2 transition hover:bg-blue-600 text-white'
+          : 'bg-blue-700 border-white border-2 transition hover:bg-blue-600 text-white',
+      };
 
     return (
         <>
@@ -68,8 +74,8 @@ const Courses = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {courses.map((course, index) => (
                                 <div key={index} className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
-                                    <p className="text-center mx-10 poppins-medium mb-4">{course.name}</p>
-                                    <Link to={`/subcourse/${course.name.toLowerCase()}`} className={`border-2 px-5 rounded-lg poppins-medium cursor-pointer mx-auto transition ${themeClasses.button}`}>
+                                    <p className="text-lg text-center mx-10 poppins-medium mb-4">{course.name}</p>
+                                    <Link to={`/subcourse/${course.name.toLowerCase()}`} className={`p-2 px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto ${themeClasses.static_button}`}>
                                         Start Learning
                                     </Link>
                                 </div>
