@@ -1,12 +1,12 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { IoIosArrowDown } from "react-icons/io";
 import { HiMenu, HiX } from "react-icons/hi";
 import { FiSun, FiMoon } from "react-icons/fi";
 import { useState, useEffect } from "react";
-import { FaArrowUp } from "react-icons/fa"; // Removed FaPlus, FaMinus
+import { FaArrowUp } from "react-icons/fa";
+import VoiceCommandWidget from "../components/VoiceCommandWidget";
+import VoiceRecognitionService from "../services/VoiceRecognitionService"; // Correct import
 
 const Layout = () => {
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
@@ -46,6 +46,33 @@ const Layout = () => {
         }
     };
 
+    const commands = [
+        {
+            keyword: ["go to home", "return home"],
+            action: () => navigate("/"),
+            displayName: "go to home",
+        },
+        {
+            keyword: ["go to courses", "open courses"],
+            action: () => navigate("/courses"),
+            displayName: "go to courses",
+        },
+        {
+            keyword: ["go to help", "open help"],
+            action: () => navigate("/help"),
+            displayName: "go to help",
+        },
+        {
+            keyword: ["help", "what are the commands", "list commands"],
+            action: () => {
+                VoiceRecognitionService.speak(
+                    "Available navigation commands are: go to home, go to courses, go to help"
+                );
+            },
+            displayName: "help",
+        }
+    ];
+
     useEffect(() => {
         window.addEventListener("scroll", toggleVisibility);
         window.addEventListener('keydown', handleKeyDown);
@@ -53,7 +80,7 @@ const Layout = () => {
             window.removeEventListener("scroll", toggleVisibility);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const themeClasses = {
@@ -65,6 +92,7 @@ const Layout = () => {
 
     return (
         <>
+            <VoiceCommandWidget commands={commands} />
             {/* Navbar */}
             <div className={`flex justify-between items-center p-4 px-5 border-b-1 relative ${themeClasses.navbar}`}>
                 <div className="flex items-center justify-between gap-2 w-full lg:w-auto">
@@ -98,13 +126,6 @@ const Layout = () => {
                                         isActive ? "poppins-bold underline" : "hover:underline"
                                     }>Courses</NavLink>
                             </li>
-                            {/* <li>
-                                <NavLink to="/quiz"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className={({ isActive }) =>
-                                        isActive ? "poppins-bold underline" : "hover:underline"
-                                    }>Quiz</NavLink>
-                            </li> */}
                             <li>
                                 <NavLink to="/help"
                                     onClick={() => setIsMobileMenuOpen(false)}
@@ -121,22 +142,6 @@ const Layout = () => {
                             {isDarkMode ? <FiSun size={24} /> : <FiMoon size={24} />}
                             <span>{isDarkMode ? 'Light' : 'Dark'} Mode</span>
                         </button>
-                        <div className="poppins-semibold cursor-pointer relative">
-                            <h3 className="flex items-center gap-2" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-                                My Profile <IoIosArrowDown className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                            </h3>
-
-                            {/* Dropdown Menu */}
-                            {isDropdownOpen && (
-                                <div className={`absolute left-0 right-0 mt-2 w-auto ${themeClasses.dropdown} border rounded-lg shadow-lg py-2`}>
-                                    <a href="/settings" className={`block px-4 py-2 ${themeClasses.dropdownHover}`}>Settings</a>
-                                    <hr />
-                                    <button className={`block w-full text-left px-4 py-2 ${themeClasses.dropdownHover} text-red-400`}>
-                                        Sign&nbsp;Out
-                                    </button>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
             </div>
@@ -145,7 +150,7 @@ const Layout = () => {
             <main >
                 <div className={`${themeClasses.mainContent} border-b-1`}>
                     <div className="container mx-auto w-screen overflow-x-hidden">
-                        <Outlet context={{ isDarkMode}} />
+                        <Outlet context={{ isDarkMode }} />
                     </div>
                 </div>
             </main>
@@ -168,4 +173,4 @@ const Layout = () => {
     )
 }
 
-export default Layout
+export default Layout;

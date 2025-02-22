@@ -1,27 +1,20 @@
-import { useOutletContext, useParams } from "react-router-dom";
+import { useOutletContext, useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { FaPlus, FaMinus, FaUndo, FaChevronDown } from "react-icons/fa";
+import { FaChevronDown } from "react-icons/fa";
 import { HiVolumeUp } from "react-icons/hi";
+import VoiceCommandWidget from "../components/VoiceCommandWidget";
+import VoiceRecognitionService from "../services/VoiceRecognitionService";
+import generateSubCourseCommands from "../utils/subCourseCommands";
 
 const SubCourse = () => {
     const { courseName } = useParams();
     const { isDarkMode } = useOutletContext();
-    const [zoomLevel, setZoomLevel] = useState(100);
+    const navigate = useNavigate();
     const [highlightedText, setHighlightedText] = useState("");
 
-    const increaseZoom = () => {
-        setZoomLevel(prev => Math.min(prev + 10, 150));
-    };
-
-    const decreaseZoom = () => {
-        setZoomLevel(prev => Math.max(prev - 10, 80));
-    };
-
-    const resetZoom = () => {
-        setZoomLevel(100);
-    };
-
     const [course, setCourse] = useState(null);
+    const [commands, setCommands] = useState([]);
+    const [lastOpenedStep, setLastOpenedStep] = useState(null);
 
     useEffect(() => {
         const fetchCourse = async () => {
@@ -44,6 +37,7 @@ const SubCourse = () => {
     const [openStep, setOpenStep] = useState(null);
 
     const toggleStep = (stepId) => {
+        setLastOpenedStep(stepId);
         setOpenStep(openStep === stepId ? null : stepId);
     };
 
@@ -62,6 +56,45 @@ const SubCourse = () => {
         utterance.onend = () => setHighlightedText("");
         speechSynthesis.speak(utterance);
     };
+
+    const readSteps = () => {
+        const stepTitles = course.sections.flatMap(section => section.steps).map(step => step.title).join(", ");
+        VoiceRecognitionService.speak(`The steps are: ${stepTitles}`);
+    };
+
+    const readStepText = (stepId) => {
+        const targetId = stepId || (openStep !== null ? openStep : lastOpenedStep);
+        console.log("readStepText called with targetId:", targetId);
+        if (targetId !== null) {
+            const step = course.sections
+                .flatMap((section) => section.steps)
+                .find((s) => String(s.id) === String(targetId));
+            if (step) {
+                console.log("Step found:", step);
+                speakText(step.textContent);
+            } else {
+                console.log("Step not found for targetId:", targetId);
+                VoiceRecognitionService.speak("Step not found.");
+            }
+        } else {
+            console.log("No targetId provided or found.");
+            VoiceRecognitionService.speak("Please open the step first.");
+        }
+    };
+
+    useEffect(() => {
+        if (course) {
+            const allCommands = generateSubCourseCommands(
+                course,
+                navigate,
+                VoiceRecognitionService,
+                toggleStep,
+                readStepText,
+                readSteps
+            );
+            setCommands(allCommands);
+        }
+    }, [course, navigate]);
 
     const themeClasses = {
         card: isDarkMode ? 'bg-[#202124] text-white border-white' : 'bg-white text-[#202124] border-[#202124]',
@@ -94,21 +127,9 @@ const SubCourse = () => {
 
     return (
         <>
-            <section className="min-h-screen py-10" style={{ zoom: `${zoomLevel}%` }}>
+            <VoiceCommandWidget commands={commands} />
+            <section className="min-h-screen py-10">
                 <div className="container mx-auto px-4">
-
-                    <div className="flex justify-end mb-4">
-                        <button onClick={decreaseZoom} className="p-2 border rounded-lg mx-1">
-                            <FaMinus />
-                        </button>
-                        <button onClick={resetZoom} className="p-2 border rounded-lg mx-1">
-                            <FaUndo />
-                        </button>
-                        <button onClick={increaseZoom} className="p-2 border rounded-lg mx-1">
-                            <FaPlus />
-                        </button>
-                    </div>
-
                     <h3 className="text-2xl text-center mx-10 poppins-medium mb-5">{course.name}</h3>
                     <div className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
                         <div className="mb-5">
@@ -155,7 +176,7 @@ const SubCourse = () => {
                                                                     </div>
                                                                     <p className={`poppins-medium p-3`}>
                                                                         {step.textContent.split(" ").map((word, index) => (
-                                                                            <span key={index} className={highlightedText === word ? 'bg-blue-600 rounded-md' : ''}>
+                                                                            <span key={index} className={highlightedText === word ? 'bg-blue-500' : ''}>
                                                                                 {word}{" "}
                                                                             </span>
                                                                         ))}
@@ -180,4 +201,4 @@ const SubCourse = () => {
     )
 }
 
-export default SubCourse
+export default SubCourse;
