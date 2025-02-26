@@ -25,7 +25,10 @@ const generateSubCourseCommands = (course, navigate, voiceService, toggleStep, r
         },
         {
             keyword: ["go back", "return to home", "go to home"],
-            action: () => navigate("/"),
+            action: () => {
+                navigate("/");
+                voiceService.speak("Going back to home");
+            },
             displayName: "go back",
         },
         {

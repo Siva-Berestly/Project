@@ -13,6 +13,7 @@ const generateCourseCommands = (courses, navigate, VoiceRecognitionService) => {
       action: () => {
         const topCourses = courses.map((course) => course.name).join(", ");
         VoiceRecognitionService.speak(`Available courses are: ${topCourses}.`);
+        VoiceRecognitionService.speak(`You can open any course by saying "open course name".`);
       },
       displayName: "what are the courses available",
     },
