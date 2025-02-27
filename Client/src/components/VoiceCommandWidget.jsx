@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import PropTypes from 'prop-types';
-import { HiMicrophone } from "react-icons/hi";
+import { HiMicrophone, HiX } from "react-icons/hi";
 import VoiceRecognitionService from '../services/VoiceRecognitionService';
 
 const VoiceCommandWidget = ({ commands }) => {
@@ -10,6 +11,7 @@ const VoiceCommandWidget = ({ commands }) => {
     const [micPermission, setMicPermission] = useState(false);
     const [isWidgetExpanded, setIsWidgetExpanded] = useState(false);
     const [needsInteraction, setNeedsInteraction] = useState(true);
+    const location = useLocation();
 
     const handleActivation = useCallback(async () => {
         try {
@@ -30,6 +32,16 @@ const VoiceCommandWidget = ({ commands }) => {
         } catch (err) {
             console.error("Deactivation error:", err);
         }
+    }, []);
+
+    const resetVoiceCommands = useCallback(() => {
+        setIsListening(false);
+        setLastTranscript('');
+        setError(null);
+        setMicPermission(false);
+        setIsWidgetExpanded(false);
+        setNeedsInteraction(true);
+        VoiceRecognitionService.deactivate();
     }, []);
 
     const helpCommands = [
@@ -53,6 +65,16 @@ const VoiceCommandWidget = ({ commands }) => {
 
         if (transcript.includes("stop listening")) {
             await handleDeactivation();
+            return;
+        }
+
+        if (transcript.includes("open widget")) {
+            setIsWidgetExpanded(true);
+            return;
+        }
+
+        if (transcript.includes("close widget")) {
+            setIsWidgetExpanded(false);
             return;
         }
 
@@ -145,11 +167,17 @@ const VoiceCommandWidget = ({ commands }) => {
         return () => VoiceRecognitionService.stop();
     }, [initVoiceRecognition]);
 
+    // Reinitialize the widget on route change and close the widget
+    useEffect(() => {
+        resetVoiceCommands();
+        initVoiceRecognition();
+    }, [location, initVoiceRecognition, resetVoiceCommands]);
+
     if (!isWidgetExpanded) {
         return (
             <button
                 onClick={handleActivation}
-                className="fixed bottom-4 right-4 p-4 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors"
+                className="fixed bottom-4 right-4 p-4 bg-gray-800 border-2 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors"
             >
                 <HiMicrophone size={24} />
             </button>
@@ -168,7 +196,12 @@ const VoiceCommandWidget = ({ commands }) => {
                     <p className="font-medium">
                         {isListening ? "Listening..." : "Voice Commands"}
                     </p>
-                    <HiMicrophone size={20} className={isListening ? "text-green-500" : "text-gray-400"} />
+                    <div className="flex items-center">
+                        <HiMicrophone size={20} className={isListening ? "text-green-500" : "text-gray-400"} />
+                        <button onClick={handleDeactivation} className="ml-2">
+                            <HiX size={20} className="text-gray-400 hover:text-red-500 transition-colors" />
+                        </button>
+                    </div>
                 </div>
 
                 {error && (
@@ -222,5 +255,4 @@ VoiceCommandWidget.propTypes = {
         displayName: PropTypes.string.isRequired,
     })).isRequired,
 };
-
 export default VoiceCommandWidget;

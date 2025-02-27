@@ -5,10 +5,10 @@ import './App.css'
 import Layout from './pages/Layout';
 import Home from './pages/Home';
 import Courses from './pages/Courses';
-import SubCourse from './pages/SubCourse';
+import Heading from './pages/Heading';
+import CourseContent from './pages/CourseContent';
 import Quiz from './pages/Quiz';
 import Help from './pages/Help';
-
 
 const App = () => {
   return (
@@ -17,7 +17,8 @@ const App = () => {
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="courses" element={<Courses />} />
-          <Route path="subcourse/:courseName" element={<SubCourse />} />
+          <Route path="heading/:courseName" element={<Heading />} />
+          <Route path="coursecontent/:courseId/:headingId" element={<CourseContent />} />
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/help" element={<Help />} />
         </Route>

@@ -1,37 +1,53 @@
 const generateCourseCommands = (courses, navigate, VoiceRecognitionService) => {
   const baseCommands = [
     {
-      keyword: [
-        "what are the courses available",
-        "what courses are available",
-        "list courses which are available",
-        "list available courses",
-        "list all courses",
-        "list all the available courses",
-        "list course names",
-      ],
+      keyword: ["what are the courses available"],
       action: () => {
-        const topCourses = courses.map((course) => course.name).join(", ");
-        VoiceRecognitionService.speak(`Available courses are: ${topCourses}.`);
-        VoiceRecognitionService.speak(`You can open any course by saying "open course name".`);
+        if (courses.length === 0) {
+          VoiceRecognitionService.speak("Courses are not available.");
+        } else {
+          const topCourses = courses.map((course) => course.title).join(", ");
+          VoiceRecognitionService.speak(
+            `Available courses are: ${topCourses}.`
+          );
+          VoiceRecognitionService.speak(
+            `You can open any course by saying "open course name".`
+          );
+        }
       },
       displayName: "what are the courses available",
+    },
+    {
+      keyword: ["go to home", "go to home page", "go home"],
+      action: () => {
+        VoiceRecognitionService.speak("Navigating to home page");
+        navigate(`/`);
+      },
+      displayName: "go to home",
     },
   ];
 
   // Add course-specific commands
-  const courseCommands = courses.map((course) => ({
-    keyword: [`open ${course.name.toLowerCase()}`],
-    action: () => {
-      navigate(`/subcourse/${course.name.toLowerCase()}`);
-      VoiceRecognitionService.speak(`Opening ${course.name} course`);
-    },
-    displayName: `open ${course.name}`,
-  }));
+  const courseCommands = courses
+    .map((course) => {
+      if (!course.title) {
+        console.error("Course title is undefined for course:", course);
+        return null;
+      }
+      return {
+        keyword: [`open ${course.title.toLowerCase()}`],
+        action: () => {
+          navigate(`/heading/${course.title.toLowerCase()}`);
+          VoiceRecognitionService.speak(`Opening ${course.title} course`);
+        },
+        displayName: `open ${course.title}`,
+      };
+    })
+    .filter(Boolean); // Filter out any null values
 
   // Add help command
   const helpCommand = {
-    keyword: ["help", "what are the commands available", "list all commands"],
+    keyword: ["help", "what are the commands available"],
     action: () => {
       const allCommands = [...baseCommands, ...courseCommands]
         .map((cmd) => cmd.displayName)

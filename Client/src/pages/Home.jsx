@@ -27,7 +27,7 @@ const Home = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/courses');
+        const response = await fetch('http://localhost:3000/api/newcourses');
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
@@ -68,7 +68,7 @@ const Home = () => {
 
   return (
     <>
-      <VoiceCommandWidget commands={commands} />
+      <VoiceCommandWidget commands={commands.filter(cmd => cmd.displayName !== "go to home")} />
       <div className="min-h-screen py-10" style={{ zoom: `${zoomLevel}%` }}>
         <div className="container mx-auto px-4">
           <div className="flex justify-end mb-4">
@@ -97,19 +97,23 @@ const Home = () => {
           <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>
             Available Courses
           </h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {courses.map((course, index) => (
-              <div key={index} className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
-                <p className="text-center mx-10 poppins-medium mb-4">{course.name}</p>
-                <Link
-                  to={`/subcourse/${course.name.toLowerCase()}`}
-                  className={`p-2 px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto ${themeClasses.static_button}`}
-                >
-                  Start Learning
-                </Link>
-              </div>
-            ))}
-          </div>
+          {courses.length === 0 ? (
+            <p className={`text-center ${themeClasses.text}`}>Courses are not available</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {courses.map((course, index) => (
+                <div key={index} className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
+                  <p className="text-center mx-10 poppins-medium mb-4">{course.title}</p>
+                  <Link
+                    to={`/heading/${course.title.toLowerCase()}`}
+                    className={`p-2 px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto ${themeClasses.static_button}`}
+                  >
+                    Start Learning
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

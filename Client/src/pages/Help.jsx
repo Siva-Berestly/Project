@@ -65,16 +65,24 @@ const Help = () => {
       <VoiceCommandWidget commands={commands} />
       <div className="min-h-screen py-10" style={{ zoom: `${zoomLevel}%` }}>
         <div className="container mx-auto px-4">
-          <h1 className={`text-3xl text-center mb-8 ${themeClasses.text}`}>Help & Instructions</h1>
+          <h1 className={`text-3xl text-center mb-8 poppins-bold ${themeClasses.text}`}>Help & Instructions</h1>
           <div className={`p-6 rounded-lg ${themeClasses.card}`}>
-            <h2 className="text-xl mb-4">Voice Commands</h2>
-            <ul className="list-disc pl-6 space-y-2">
+            <h2 className="text-xl mb-4 poppins-semibold">Voice Commands</h2>
+            <ul className="list-disc pl-6 space-y-2 poppins-regular mb-10">
               <li>Say "help" on any page to hear available commands</li>
               <li>Say "start listening" to activate voice commands</li>
               <li>Say "stop listening" to deactivate voice commands</li>
-              <li>Navigation: "go to home", "go to courses", "go to help"</li>
-              <li>Course navigation: "open [course name]"</li>
-              <li>Content reading: "speak text [number]"</li>
+              <li>Navigation: "go to home", "go to dashboard", "go to help"</li>
+              <li>Project navigation: "open [project name]"</li>
+              <li>Task management: "create task [task name]", "complete task [task name]"</li>
+            </ul>
+            <h2 className="text-xl mb-4 poppins-semibold">Screen Readers</h2>
+            <ul className="list-disc pl-6 space-y-2 poppins-regular">
+              <li><a href="https://www.bdu.ac.in/screen-reader-access.php" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Screen Reader Access</a> (Free)</li>
+              <li><a href="https://www.freedomscientific.com/products/software/jaws/" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">JAWS Screen Reader</a> (Paid)</li>
+              <li><a href="https://www.nvaccess.org/" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">NVDA Screen Reader</a> (Free)</li>
+              <li><a href="https://www.apple.com/voiceover/" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">VoiceOver for macOS</a> (Free with macOS)</li>
+              <li><a href="https://www.microsoft.com/en-us/accessibility/windows" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Narrator for Windows</a> (Free with Windows)</li>
             </ul>
           </div>
         </div>
