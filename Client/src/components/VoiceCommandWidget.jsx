@@ -111,7 +111,7 @@ const VoiceCommandWidget = ({ commands }) => {
                     if (commandExecuted) break;
                 }
                 if (!commandExecuted) {
-                    VoiceRecognitionService.speak("Command not recognized");
+                    await VoiceRecognitionService.speak("Command not recognized");
                 }
             }
         }

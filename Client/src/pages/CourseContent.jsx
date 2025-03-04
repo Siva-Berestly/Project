@@ -1,7 +1,10 @@
 import { useParams, useOutletContext, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { HiVolumeUp, HiPause, HiPlay, HiStop } from "react-icons/hi";
+import { HiVolumeUp } from "react-icons/hi";
+import { IoPlay } from "react-icons/io5";
+import { IoMdPause } from "react-icons/io";
 import { FaPlus, FaMinus, FaUndo } from "react-icons/fa";
+import { FaStop } from "react-icons/fa6";
 import VoiceCommandWidget from "../components/VoiceCommandWidget";
 import VoiceRecognitionService from "../services/VoiceRecognitionService";
 import generateCourseContentCommands from "../utils/courseContentCommands";
@@ -165,12 +168,12 @@ const CourseContent = () => {
             const videoId = vcontent.split("v=")[1] || vcontent.split("/").pop();
             const embedUrl = `https://www.youtube.com/embed/${videoId}`;
             return (
-                <div className="mx-auto flex justify-center mt-10 w-auto">
-                    <iframe width="560" height="315" src={embedUrl} frameBorder="0" allowFullScreen></iframe>
+                <div className="mx-auto flex justify-center mt-10 rounded-lg overflow-hidden shadow-lg">
+                    <iframe width="800" height="450" src={embedUrl} frameBorder="0" allowFullScreen className="rounded-lg"></iframe>
                 </div>
             );
         } else {
-            return <video controls src={vcontent} className="mx-auto"></video>;
+            return <video controls src={vcontent} className="mx-auto rounded-lg"></video>;
         }
     };
 
@@ -227,7 +230,7 @@ const CourseContent = () => {
                                                     onClick={isPaused ? resumeSpeech : pauseSpeech}
                                                     className="bg-blue-700 text-white border-white hover:bg-blue-600 p-4 border-2 rounded-4xl mx-1 text-xl font-bold"
                                                 >
-                                                    {isPaused ? <HiPlay /> : <HiPause />}
+                                                    {isPaused ? <IoPlay /> : <IoMdPause />}
                                                 </button>
                                                 <button
                                                     onClick={restartSpeech}
@@ -239,7 +242,7 @@ const CourseContent = () => {
                                                     onClick={stopSpeech}
                                                     className="bg-blue-700 text-white border-white hover:bg-blue-600 p-4 border-2 rounded-4xl mx-1 text-xl font-bold"
                                                 >
-                                                    <HiStop />
+                                                    <FaStop />
                                                 </button>
                                             </>
                                         )

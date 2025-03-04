@@ -115,7 +115,13 @@ class VoiceRecognitionService {
     }
     return new Promise((resolve) => {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.onend = resolve;
+      utterance.onstart = () => {
+        this.stop(); // Temporarily stop recognition
+      };
+      utterance.onend = () => {
+        this.start(); // Restart recognition
+        resolve();
+      };
       speechSynthesis.speak(utterance);
     });
   }
