@@ -1,3 +1,5 @@
+import TextToSpeechService from "./TextToSpeechService";
+
 class VoiceRecognitionService {
   constructor() {
     this.recognition = null;
@@ -252,14 +254,14 @@ class VoiceRecognitionService {
   }
 
   async processCommands(transcript, commands) {
-    // Special handling for "start listening" command - should always work
+    // Pause speech right when user says "start listening"
     if (transcript.includes("start listening")) {
-      console.log("Start listening command detected");
-      // Try to initialize audio if needed
-      if (!this.isAudioReady) {
-        await this.initAudio();
+      if (
+        TextToSpeechService.isSpeakingNow() &&
+        !TextToSpeechService.isPausedNow()
+      ) {
+        TextToSpeechService.pause();
       }
-
       this.activate();
       await this.speak("Voice commands activated");
       return true;
@@ -267,7 +269,6 @@ class VoiceRecognitionService {
 
     if (!this.isActive) return false;
 
-    // Regular command processing
     this.commandQueue.push({ transcript, commands });
     if (!this.isProcessingQueue) {
       this.processQueue();
@@ -284,12 +285,9 @@ class VoiceRecognitionService {
       let commandExecuted = false;
 
       for (const command of commands) {
-        // Properly check for keywords whether they're strings or arrays
         const keywords = Array.isArray(command.keyword)
           ? command.keyword
           : [command.keyword];
-
-        // Check if any of the keywords match the transcript
         const isMatch = keywords.some((keyword) =>
           transcript.toLowerCase().includes(keyword.toLowerCase())
         );
@@ -306,10 +304,12 @@ class VoiceRecognitionService {
       }
 
       if (!commandExecuted) {
-        await this.speak("Command not recognized");
+        // Notify user, then say "continuing" and resume reading if it was paused
+        await this.speak("Command not recognized. Continuing.");
+        if (TextToSpeechService.isPausedNow()) {
+          TextToSpeechService.resume();
+        }
       }
-
-      // Small delay between commands
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 

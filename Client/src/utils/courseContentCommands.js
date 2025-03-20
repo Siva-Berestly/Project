@@ -1,4 +1,5 @@
 import FeedbackService from "./feedbackService";
+import TextToSpeechService from "../services/TextToSpeechService";
 
 const generateCourseContentCommands = (
   section,
@@ -90,14 +91,20 @@ const generateCourseContentCommands = (
       ],
       action: async () => {
         try {
+          // First pause the speech
           const paused = await pauseSpeech();
+
+          // Wait a moment for the speech to actually pause
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
+          // Then provide feedback if successfully paused
           if (paused) {
-            setTimeout(async () => {
-              if (!VoiceRecognitionService.isListening) {
-                await VoiceRecognitionService.start();
-              }
-              await FeedbackService.provideFeedback("Pausing the text.");
-            }, 100);
+            await FeedbackService.provideFeedback("Pausing the text.");
+
+            // Ensure voice recognition is listening after feedback
+            if (!VoiceRecognitionService.isListening) {
+              await VoiceRecognitionService.start();
+            }
           } else {
             await FeedbackService.provideFeedback("Unable to pause the text.");
           }
@@ -121,14 +128,20 @@ const generateCourseContentCommands = (
       ],
       action: async () => {
         try {
+          // First resume the speech
           const resumed = await resumeSpeech();
+
+          // Wait a moment for the speech to actually resume
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
+          // Then provide feedback if successfully resumed
           if (resumed) {
-            setTimeout(async () => {
-              if (!VoiceRecognitionService.isListening) {
-                await VoiceRecognitionService.start();
-              }
-              await FeedbackService.provideFeedback("Resuming the text.");
-            }, 100);
+            await FeedbackService.provideFeedback("Resuming the text.");
+
+            // Ensure voice recognition is listening after feedback
+            if (!VoiceRecognitionService.isListening) {
+              await VoiceRecognitionService.start();
+            }
           } else {
             await FeedbackService.provideFeedback("Unable to resume the text.");
           }
@@ -144,26 +157,62 @@ const generateCourseContentCommands = (
     {
       keyword: ["restart the text", "restart text from beginning", "restart"],
       action: async () => {
-        await FeedbackService.provideFeedback(
-          "Restarting the text from the beginning."
-        );
-        restartSpeech();
+        try {
+          // First restart the speech
+          restartSpeech();
+
+          // Wait a moment for the speech to actually restart
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Then provide feedback
+          await FeedbackService.provideFeedback(
+            "Restarting the text from the beginning."
+          );
+        } catch (err) {
+          console.error("Error in restart command:", err);
+          await FeedbackService.provideFeedback(
+            "An error occurred while restarting."
+          );
+        }
       },
       displayName: "Restart reading",
     },
     {
-      keyword: ["end reading", "finish reading", "terminate reading"],
+      keyword: ["end reading","and reading", "finish reading", "terminate reading"],
       action: async () => {
-        await FeedbackService.provideFeedback(
-          "Stopping the reading completely. You can start again by saying 'start reading'."
-        );
-        stopSpeech(); // First stop the speech
-        // Allow time for stopSpeech to complete its operation
-        setTimeout(async () => {
+        try {
+          console.log("End reading command triggered");
+
+          // Store the current state
+          const wasReading =
+            TextToSpeechService && TextToSpeechService.isSpeakingNow();
+
+          // Stop the speech completely
+          if (wasReading) {
+            console.log("Stopping speech");
+            stopSpeech();
+          }
+
+          // Wait to ensure speech is completely stopped
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Now provide feedback using the VoiceRecognitionService speak method
+          // instead of FeedbackService to avoid conflicts
+          console.log("Providing end reading feedback");
+          await VoiceRecognitionService.speak(
+            "Ending the reading."
+          );
+
+          // Make sure voice recognition is active
           if (!VoiceRecognitionService.isListening) {
             await VoiceRecognitionService.start();
           }
-        }, 100);
+        } catch (err) {
+          console.error("Error in end reading command:", err);
+          await VoiceRecognitionService.speak(
+            "An error occurred while stopping the reading."
+          );
+        }
       },
       displayName: "End reading",
     },

@@ -174,7 +174,7 @@ const VoiceCommandWidget = ({ commands }) => {
         }
     }, [processTranscript]);
 
-    const handleAudioInit = async () => {
+    const handleAudioInit = useCallback(async () => {
         if (!audioInitialized) {
             const success = await initializeAudio();
             if (success) {
@@ -191,7 +191,7 @@ const VoiceCommandWidget = ({ commands }) => {
                 }
             }
         }
-    };
+    }, [audioInitialized]);
 
     useEffect(() => {
         // Add document-wide handlers to enable audio on any user interaction
@@ -206,7 +206,7 @@ const VoiceCommandWidget = ({ commands }) => {
             document.removeEventListener('click', enableAudioOnInteraction);
             document.removeEventListener('keydown', enableAudioOnInteraction);
         };
-    }, [audioInitialized]);
+    }, [audioInitialized, handleAudioInit]);
 
     useEffect(() => {
         const handleInteraction = async () => {

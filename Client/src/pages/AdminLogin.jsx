@@ -196,6 +196,7 @@ const AdminLogin = () => {
                                 type="text"
                                 id="username"
                                 name="username"
+                                autoComplete="username"
                                 value={formData.username}
                                 onChange={handleChange}
                                 className={`${themeClasses.input} pl-10 block w-full p-2.5 rounded-lg border`}

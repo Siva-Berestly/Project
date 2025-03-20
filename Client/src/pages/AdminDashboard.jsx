@@ -60,8 +60,10 @@ const AdminDashboard = () => {
     }, [navigate]);
 
     const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        navigate('/admin/login');
+        if (window.confirm('Do you really want to log out?')) {
+            localStorage.removeItem('authToken');
+            navigate('/admin/login');
+        }
     };
 
     if (loading) {
@@ -77,7 +79,7 @@ const AdminDashboard = () => {
 
     return (
         <div className={`min-h-[80vh] ${themeClasses.container}`}>
-            <div className="flex flex-col md:flex-row">
+            <div className="flex flex-col md:flex-row w-full">
                 {/* Sidebar */}
                 <div className={`w-full md:w-64 ${themeClasses.sidebar} border-r p-4`}>
                     <div className="flex items-center gap-3 mb-6 p-2">
@@ -85,17 +87,16 @@ const AdminDashboard = () => {
                             <FaUser />
                         </div>
                         <div>
-                            <h2 className="font-semibold">{user?.username}</h2>
-                            <p className="text-sm opacity-75">{user?.role}</p>
+                            <h2 className="font-semibold uppercase">{user?.username}</h2>
                         </div>
                     </div>
 
                     <nav>
-                        <ul className="space-y-2">
+                        <ul className="space-y-1 poppins-regular">
                             <li>
                                 <button
                                     onClick={() => setActiveSection('overview')}
-                                    className={`w-full text-left p-2 rounded flex items-center gap-3 ${activeSection === 'overview' ? 'bg-blue-500 text-white' : themeClasses.menuItem}`}
+                                    className={`w-full text-left p-2 rounded flex items-center gap-3 ${activeSection === 'overview' ? 'bg-blue-500 text-white poppins-semibold' : themeClasses.menuItem}`}
                                 >
                                     <FaBook /> Overview
                                 </button>
@@ -103,7 +104,7 @@ const AdminDashboard = () => {
                             <li>
                                 <button
                                     onClick={() => setActiveSection('settings')}
-                                    className={`w-full text-left p-2 rounded flex items-center gap-3 ${activeSection === 'settings' ? 'bg-blue-500 text-white' : themeClasses.menuItem}`}
+                                    className={`w-full text-left p-2 rounded flex items-center gap-3 ${activeSection === 'settings' ? 'bg-blue-500 text-white poppins-semibold' : themeClasses.menuItem}`}
                                 >
                                     <FaCog /> Settings
                                 </button>

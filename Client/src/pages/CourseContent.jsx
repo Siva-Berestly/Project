@@ -3,8 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { HiVolumeUp } from "react-icons/hi";
 import { IoPlay } from "react-icons/io5";
 import { IoMdPause } from "react-icons/io";
-import { FaPlus, FaMinus, FaUndo } from "react-icons/fa";
-import { FaStop } from "react-icons/fa6";
+import { FaPlus, FaMinus, FaUndo, FaStop } from "react-icons/fa";
 import VoiceCommandWidget from "../components/VoiceCommandWidget";
 import VoiceRecognitionService from "../services/VoiceRecognitionService";
 import TextToSpeechService from "../services/TextToSpeechService";
@@ -16,7 +15,6 @@ const CourseContent = () => {
     const [section, setSection] = useState(null);
     const { isDarkMode } = useOutletContext();
     const [selectedOption, setSelectedOption] = useState("text");
-    const [highlightedText, setHighlightedText] = useState("");
     const [highlightedSentenceIndex, setHighlightedSentenceIndex] = useState(0);
     const [zoomLevel, setZoomLevel] = useState(100);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -27,6 +25,8 @@ const CourseContent = () => {
     const currentCommandsRef = useRef([]);
     const stopButtonRef = useRef(null);
     const [isAudioInitialized, setIsAudioInitialized] = useState(false);
+    const [currentWordIndex, setCurrentWordIndex] = useState(null);
+    const splittedTextRef = useRef([]);
 
     useEffect(() => {
         const fetchSection = async () => {
@@ -44,6 +44,13 @@ const CourseContent = () => {
 
         fetchSection();
     }, [courseId, headingId]);
+
+    useEffect(() => {
+        if (section && section.tcontent) {
+            // Capture each sentence with possible punctuation
+            splittedTextRef.current = section.tcontent.match(/[^.!?]+[.!?]|[^.!?]+$/g) || [];
+        }
+    }, [section]);
 
     const initAudioOnUserInteraction = async () => {
         try {
@@ -117,11 +124,11 @@ const CourseContent = () => {
                 }
             },
             onEnd: () => {
-                setHighlightedText("");
                 setHighlightedSentenceIndex(0);
                 setIsSpeaking(false);
                 setIsPaused(false);
                 setShowSpeechControls(false);
+                setCurrentWordIndex(null);
 
                 if (section) {
                     const { baseCommands } = generateCourseContentCommands(
@@ -145,28 +152,28 @@ const CourseContent = () => {
                 setIsPaused(false);
             },
             onBoundary: (event) => {
-                if (!event || !section || !section.tcontent) return;
+                if (!event || event.name !== "word") return;
 
-                if (event.name === "word") {
+                setTimeout(() => {
                     try {
-                        const sentences = section.tcontent.split(". ");
-                        let sentenceIndex = 0;
-                        let wordIndex = 0;
+                        const sentences = splittedTextRef.current;
                         let totalChars = 0;
+                        let currentSentenceIndex = null;
+                        let currentWord = null;
+                        let currentWordIndexInSentence = null;
 
-                        // Find which sentence and word we're at based on char position
                         for (let i = 0; i < sentences.length; i++) {
                             const words = sentences[i].split(" ");
-                            const sentenceLength = sentences[i].length + 2; // Add 2 for ". "
+                            const sentenceLength = sentences[i].length + 2;
 
                             if (totalChars + sentenceLength > event.charIndex) {
-                                sentenceIndex = i;
-                                // Find word in sentence
+                                currentSentenceIndex = i;
                                 let wordCharCount = 0;
                                 for (let j = 0; j < words.length; j++) {
-                                    const wordLength = words[j].length + 1; // Add 1 for space
-                                    if (wordCharCount + wordLength + totalChars > event.charIndex) {
-                                        wordIndex = j;
+                                    const wordLength = words[j].length + 1;
+                                    if (wordCharCount + totalChars + wordLength > event.charIndex) {
+                                        currentWord = words[j];
+                                        currentWordIndexInSentence = j;
                                         break;
                                     }
                                     wordCharCount += wordLength;
@@ -176,16 +183,15 @@ const CourseContent = () => {
                             totalChars += sentenceLength;
                         }
 
-                        if (sentenceIndex < sentences.length &&
-                            wordIndex < sentences[sentenceIndex].split(" ").length) {
-                            const words = sentences[sentenceIndex].split(" ");
-                            setHighlightedText(words[wordIndex]);
-                            setHighlightedSentenceIndex(sentenceIndex);
+                        // Update state only if a word is found
+                        if (currentWord !== null && currentSentenceIndex !== null) {
+                            setHighlightedSentenceIndex(currentSentenceIndex);
+                            setCurrentWordIndex(currentWordIndexInSentence);
                         }
                     } catch (err) {
                         console.error("Error highlighting text:", err);
                     }
-                }
+                }, 0);
             }
         });
 
@@ -269,7 +275,6 @@ const CourseContent = () => {
         if (TextToSpeechService.isSpeakingNow()) {
             TextToSpeechService.stop();
         }
-        setHighlightedText(""); // Reset highlighted text
         setHighlightedSentenceIndex(0); // Reset sentence index
         setIsSpeaking(false); // Ensure speaking state is reset
         setShowSpeechControls(false); // Hide speech controls
@@ -403,11 +408,18 @@ const CourseContent = () => {
                                     <ul className="list-disc pl-5">
                                         {section.tcontent.split(". ").map((sentence, index) => (
                                             <li key={index} className="poppins-medium p-3 text-lg">
-                                                {sentence.split(" ").map((word, wordIndex) => (
-                                                    <span key={wordIndex} className={highlightedText === word && highlightedSentenceIndex === index ? 'bg-blue-500' : ''}>
-                                                        {word}{" "}
-                                                    </span>
-                                                ))}
+                                                {sentence.split(" ").map((word, wordIndex) => {
+                                                    const isHighlighted =
+                                                        highlightedSentenceIndex === index && wordIndex === currentWordIndex;
+                                                    return (
+                                                        <span
+                                                            key={wordIndex}
+                                                            className={isHighlighted ? 'bg-blue-400 text-white rounded px-1' : ''}
+                                                        >
+                                                            {word}{" "}
+                                                        </span>
+                                                    );
+                                                })}
                                             </li>
                                         ))}
                                     </ul>
