@@ -44,11 +44,11 @@ const ResetPassword = () => {
 
     const validatePassword = (password) => {
         return [
-            { id: 'minLength', isValid: password.length >= 8 },
-            { id: 'uppercase', isValid: /[A-Z]/.test(password) },
-            { id: 'lowercase', isValid: /[a-z]/.test(password) },
-            { id: 'number', isValid: /[0-9]/.test(password) },
-            { id: 'special', isValid: /[!@#$%^&*]/.test(password) }
+            { id: 'minLength', isValid: password.length >= 8, text: 'At least 8 characters' },
+            { id: 'uppercase', isValid: /[A-Z]/.test(password), text: 'One uppercase letter' },
+            { id: 'lowercase', isValid: /[a-z]/.test(password), text: 'One lowercase letter' },
+            { id: 'number', isValid: /[0-9]/.test(password), text: 'One number' },
+            { id: 'special', isValid: /[!@#$%^&*]/.test(password), text: 'One special character (!@#$%^&*)' }
         ];
     };
 

@@ -98,10 +98,19 @@ const AdminLogin = () => {
             }
 
             setResetMessage('Password reset instructions sent to your email.');
-            // Close the modal after 3 seconds
+
+            // Display development information if available
+            if (data.resetUrl) {
+                console.info('Development mode - Reset URL:', data.resetUrl);
+                if (!data.emailSent) {
+                    setResetMessage('Email server is not configured properly. In development mode, you can use this token to reset your password: ' + data.resetToken);
+                }
+            }
+
+            // Close the modal after 5 seconds to give time to read any development messages
             setTimeout(() => {
                 setShowForgotPassword(false);
-            }, 3000);
+            }, 5000);
         } catch (err) {
             setError(err.message || 'Password reset request failed. Please try again.');
         } finally {
@@ -199,7 +208,7 @@ const AdminLogin = () => {
                                 autoComplete="username"
                                 value={formData.username}
                                 onChange={handleChange}
-                                className={`${themeClasses.input} pl-10 block w-full p-2.5 rounded-lg border`}
+                                className={`${themeClasses.input} pl-10 block w-full p-2.5 rounded-lg border poppins-regular`}
                                 placeholder="Enter your username"
                                 required
                             />
@@ -221,14 +230,14 @@ const AdminLogin = () => {
                                 autoComplete="current-password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                className={`${themeClasses.input} pl-10 block w-full p-2.5 rounded-lg border`}
+                                className={`${themeClasses.input} pl-10 block w-full p-2.5 rounded-lg border poppins-regular`}
                                 placeholder="Enter your password"
                                 required
                             />
                         </div>
                     </div>
 
-                    <div className="mb-6 text-right">
+                    <div className="mb-6 text-right poppins-regular">
                         <button
                             type="button"
                             onClick={() => setShowForgotPassword(true)}

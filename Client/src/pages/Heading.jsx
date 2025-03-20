@@ -98,16 +98,20 @@ const Heading = () => {
                     <div className={`flex flex-col p-4 rounded-lg ${themeClasses.text}`}>
                         <div className="mb-5">
                             {course.sections.map((section, sectionIndex) => (
-                                <div key={sectionIndex} className="flex justify-around items-center border rounded-xl mt-2 mb-5 p-5">
-                                    <p className="text-center poppins-medium text-lg">
-                                        {sectionIndex + 1}. {section.heading}
-                                    </p>
-                                    <button
-                                        onClick={() => navigate(`/coursecontent/${course.id}/${section.hid}`)}
-                                        className={`w-auto text-center px-4 py-2 border rounded-lg poppins-medium cursor-pointer transition ${themeClasses.static_button}`}
-                                    >
-                                        View Content
-                                    </button>
+                                <div key={sectionIndex} className="grid grid-cols-3 border rounded-xl mt-2 mb-5 p-5">
+                                    <div className="col-span-2 flex items-center ms-[20%]">
+                                        <p className="poppins-medium text-lg">
+                                            {sectionIndex + 1}. {section.heading}
+                                        </p>
+                                    </div>
+                                    <div className="col-span-1 flex justify-center">
+                                        <button
+                                            onClick={() => navigate(`/coursecontent/${course.id}/${section.hid}`)}
+                                            className={`w-full max-w-[150px] text-center px-4 py-2 border rounded-lg poppins-medium cursor-pointer transition ${themeClasses.static_button}`}
+                                        >
+                                            View Content
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

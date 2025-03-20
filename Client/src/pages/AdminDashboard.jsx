@@ -1,7 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { FaArrowDownShortWide } from "react-icons/fa6";
-import { FaUser, FaBook, FaSignOutAlt, FaBookReader, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaUser, FaBook, FaSignOutAlt, FaBookReader, FaTrash, FaPlus, FaEdit, FaCog, FaCheck, FaTimes } from 'react-icons/fa';
+import PropTypes from 'prop-types';
+
+// Define ValidationItem component outside main component
+const ValidationItem = ({ isValid, text }) => (
+    <div className={`flex items-center gap-2 ${isValid ? 'text-green-500' : 'text-red-500'}`}>
+        {isValid ? (
+            <FaCheck size={12} />
+        ) : (
+            <FaTimes size={12} />
+        )}
+        <span className="text-sm">{text}</span>
+    </div>
+);
+
+// Add PropTypes validation
+ValidationItem.propTypes = {
+    isValid: PropTypes.bool.isRequired,
+    text: PropTypes.string.isRequired
+};
 
 const AdminDashboard = () => {
     const { isDarkMode } = useOutletContext();
@@ -15,8 +34,7 @@ const AdminDashboard = () => {
     const [loadingCourses, setLoadingCourses] = useState(false);
     const [showAddCourseForm, setShowAddCourseForm] = useState(false);
     const [courseForm, setCourseForm] = useState({
-        id: '',
-        title: ''
+        title: '' // Removed 'id'
     });
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
@@ -25,11 +43,41 @@ const AdminDashboard = () => {
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [showAddSectionForm, setShowAddSectionForm] = useState(false);
     const [sectionForm, setSectionForm] = useState({
+        heading: '',
+        content: '',
+        vcontent: '' // Removed 'hid'
+    });
+
+    // Add new state variables for editing courses and sections
+    const [showEditCourseForm, setShowEditCourseForm] = useState(false);
+    const [editCourseForm, setEditCourseForm] = useState({
+        id: '',
+        title: ''
+    });
+    const [showEditSectionForm, setShowEditSectionForm] = useState(false);
+    const [editSectionForm, setEditSectionForm] = useState({
         hid: '',
         heading: '',
         content: '',
-        vcontent: '' // Add vcontent to the form state
+        vcontent: ''
     });
+
+    // Add new state variables for settings
+    const [settingsForm, setSettingsForm] = useState({
+        email: '',
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+
+    // Password validation state
+    const [passwordValidation, setPasswordValidation] = useState([
+        { id: 'minLength', isValid: false, text: 'At least 8 characters' },
+        { id: 'uppercase', isValid: false, text: 'One uppercase letter' },
+        { id: 'lowercase', isValid: false, text: 'One lowercase letter' },
+        { id: 'number', isValid: false, text: 'One number' },
+        { id: 'special', isValid: false, text: 'One special character (!@#$%^&*)' }
+    ]);
 
     const themeClasses = {
         container: isDarkMode ? 'bg-[#202124] text-white' : 'bg-white text-gray-800',
@@ -72,7 +120,31 @@ const AdminDashboard = () => {
             }
         };
 
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch('/api/admin/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const userData = await response.json();
+                // Update settings form with current email
+                setSettingsForm(prev => ({
+                    ...prev,
+                    email: userData.email
+                }));
+            } catch (err) {
+                console.error('Error fetching user data:', err);
+            }
+        };
+
         fetchUser();
+        fetchUserData();
         fetchCourses(); // Fetch courses when component mounts
     }, [navigate]);
 
@@ -109,9 +181,8 @@ const AdminDashboard = () => {
         setSuccessMessage('');
 
         try {
-            // Validate form
-            if (!courseForm.id || !courseForm.title) {
-                setError('Course ID and title are required');
+            if (!courseForm.title) {
+                setError('Course title is required');
                 return;
             }
 
@@ -122,7 +193,6 @@ const AdminDashboard = () => {
                     'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 },
                 body: JSON.stringify({
-                    id: parseInt(courseForm.id),
                     title: courseForm.title,
                     sections: []
                 })
@@ -134,7 +204,7 @@ const AdminDashboard = () => {
             }
 
             setSuccessMessage('Course added successfully');
-            setCourseForm({ id: '', title: '' });
+            setCourseForm({ title: '' }); // Reset form
             setShowAddCourseForm(false);
             fetchCourses();
         } catch (err) {
@@ -174,7 +244,7 @@ const AdminDashboard = () => {
     // Function to handle selecting a course for section management
     const handleCourseSelect = (course) => {
         setSelectedCourse(course);
-        setSectionForm({ hid: '', heading: '', content: '', vcontent: '' });
+        setSectionForm({ heading: '', content: '', vcontent: '' });
         setShowAddSectionForm(false);
     };
 
@@ -191,11 +261,16 @@ const AdminDashboard = () => {
         setSuccessMessage('');
 
         try {
-            // Validate form
-            if (!sectionForm.hid || !sectionForm.heading || !sectionForm.content) {
-                setError('Section ID, heading, and content are required');
+            if (!sectionForm.heading || !sectionForm.content) {
+                setError('Section heading and content are required');
                 return;
             }
+
+            console.log("Sending section data:", {
+                heading: sectionForm.heading,
+                content: sectionForm.content,
+                vcontent: sectionForm.vcontent
+            });  // Add this debug log
 
             const response = await fetch(`/api/admin/courses/${selectedCourse.id}/sections`, {
                 method: 'POST',
@@ -204,10 +279,9 @@ const AdminDashboard = () => {
                     'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 },
                 body: JSON.stringify({
-                    hid: parseInt(sectionForm.hid),
                     heading: sectionForm.heading,
                     content: sectionForm.content,
-                    vcontent: sectionForm.vcontent // Include vcontent in the request
+                    vcontent: sectionForm.vcontent
                 })
             });
 
@@ -217,7 +291,7 @@ const AdminDashboard = () => {
             }
 
             setSuccessMessage('Section added successfully');
-            setSectionForm({ hid: '', heading: '', content: '', vcontent: '' }); // Reset form
+            setSectionForm({ heading: '', content: '', vcontent: '' }); // Reset form
             setShowAddSectionForm(false);
             fetchCourses();
         } catch (err) {
@@ -254,6 +328,300 @@ const AdminDashboard = () => {
         }
     };
 
+    // Function to handle editing a course
+    const handleEditCourseClick = (course) => {
+        setEditCourseForm({
+            id: course.id,
+            title: course.title
+        });
+        setShowEditCourseForm(true);
+        setShowAddCourseForm(false);
+    };
+
+    // Handle course edit form submission
+    const handleEditCourse = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMessage('');
+
+        try {
+            if (!editCourseForm.title) {
+                setError('Course title is required');
+                return;
+            }
+
+            // First check if the PUT endpoint works
+            try {
+                const response = await fetch(`/api/admin/courses/${editCourseForm.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        title: editCourseForm.title
+                    })
+                });
+
+                // If PUT works, handle the response normally
+                if (response.ok) {
+                    setSuccessMessage('Course updated successfully');
+                    setShowEditCourseForm(false);
+                    fetchCourses();
+                    return;
+                }
+
+                // If we get here, PUT method failed but didn't throw an error
+                console.log('PUT method not supported, falling back to POST');
+            } catch (err) {
+                console.log('PUT method failed:', err);
+                // Continue to fallback method
+            }
+
+            // Fallback: Try the update endpoint with POST method
+            const updateResponse = await fetch(`/api/admin/courses/${editCourseForm.id}/update`, {
+                method: 'POST',  // Use POST as fallback
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                    title: editCourseForm.title
+                })
+            });
+
+            if (!updateResponse.ok) {
+                // Check if the response is JSON
+                let errorData;
+                const contentType = updateResponse.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    errorData = await updateResponse.json();
+                } else {
+                    // If not JSON, get the text and create a generic error message
+                    await updateResponse.text();
+                    throw new Error('Server returned a non-JSON response. API endpoint may not exist.');
+                }
+
+                throw new Error(errorData.message || 'Failed to update course');
+            }
+
+            setSuccessMessage('Course updated successfully');
+            setShowEditCourseForm(false);
+            fetchCourses();
+        } catch (err) {
+            setError('Error updating course: ' + err.message);
+            console.error('Error updating course:', err);
+        }
+    };
+
+    // Function to handle editing a section
+    const handleEditSectionClick = (section) => {
+        setEditSectionForm({
+            hid: section.hid,
+            heading: section.heading,
+            content: section.tcontent,
+            vcontent: section.vcontent || ''
+        });
+        setShowEditSectionForm(true);
+        setShowAddSectionForm(false);
+    };
+
+    // Handle section edit form submission
+    const handleEditSection = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMessage('');
+
+        try {
+            if (!editSectionForm.heading || !editSectionForm.content) {
+                setError('Section heading and content are required');
+                return;
+            }
+
+            // First check if the PUT endpoint works
+            try {
+                const response = await fetch(`/api/admin/courses/${selectedCourse.id}/sections/${editSectionForm.hid}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        heading: editSectionForm.heading,
+                        content: editSectionForm.content,
+                        vcontent: editSectionForm.vcontent
+                    })
+                });
+
+                // If PUT works, handle the response normally
+                if (response.ok) {
+                    setSuccessMessage('Section updated successfully');
+                    setShowEditSectionForm(false);
+                    fetchCourses();
+                    return;
+                }
+
+                // If we get here, PUT method failed but didn't throw an error
+                console.log('PUT method not supported for section update, falling back to POST');
+            } catch (err) {
+                console.log('PUT method failed for section update:', err);
+                // Continue to fallback method
+            }
+
+            // Fallback: Try the update endpoint with POST method
+            const updateResponse = await fetch(`/api/admin/courses/${selectedCourse.id}/sections/${editSectionForm.hid}/update`, {
+                method: 'POST',  // Use POST as fallback
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                    heading: editSectionForm.heading,
+                    content: editSectionForm.content,
+                    vcontent: editSectionForm.vcontent
+                })
+            });
+
+            if (!updateResponse.ok) {
+                // Check if the response is JSON
+                let errorData;
+                const contentType = updateResponse.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    errorData = await updateResponse.json();
+                } else {
+                    // If not JSON, get the text and create a generic error message
+                    throw new Error('Server returned a non-JSON response. API endpoint may not exist.');
+                }
+
+                throw new Error(errorData.message || 'Failed to update section');
+            }
+
+            setSuccessMessage('Section updated successfully');
+            setShowEditSectionForm(false);
+            fetchCourses();
+        } catch (err) {
+            setError('Error updating section: ' + err.message);
+            console.error('Error updating section:', err);
+        }
+    };
+
+    // Handle edit form input changes
+    const handleEditCourseInputChange = (e) => {
+        const { name, value } = e.target;
+        setEditCourseForm({ ...editCourseForm, [name]: value });
+    };
+
+    // Handle edit section form input changes
+    const handleEditSectionInputChange = (e) => {
+        const { name, value } = e.target;
+        setEditSectionForm({ ...editSectionForm, [name]: value });
+    };
+
+    // Validate password
+    const validatePassword = (password) => {
+        return [
+            { id: 'minLength', isValid: password.length >= 8, text: 'At least 8 characters' },
+            { id: 'uppercase', isValid: /[A-Z]/.test(password), text: 'One uppercase letter' },
+            { id: 'lowercase', isValid: /[a-z]/.test(password), text: 'One lowercase letter' },
+            { id: 'number', isValid: /[0-9]/.test(password), text: 'One number' },
+            { id: 'special', isValid: /[!@#$%^&*]/.test(password), text: 'One special character (!@#$%^&*)' }
+        ];
+    };
+
+    // Handle settings form input change
+    const handleSettingsInputChange = (e) => {
+        const { name, value } = e.target;
+        setSettingsForm({
+            ...settingsForm,
+            [name]: value
+        });
+
+        // Update password validation if needed
+        if (name === 'newPassword') {
+            setPasswordValidation(validatePassword(value));
+        }
+    };
+
+    // Handle email update
+    const handleUpdateEmail = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMessage('');
+
+        try {
+            const response = await fetch('/api/admin/settings/email', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                    email: settingsForm.email
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update email');
+            }
+
+            setSuccessMessage('Email updated successfully');
+        } catch (err) {
+            setError('Error updating email: ' + err.message);
+            console.error('Error updating email:', err);
+        }
+    };
+
+    // Handle password update
+    const handleUpdatePassword = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMessage('');
+
+        // Check if passwords match
+        if (settingsForm.newPassword !== settingsForm.confirmPassword) {
+            setError('New passwords do not match');
+            return;
+        }
+
+        // Check if all password validations pass
+        const allValid = passwordValidation.every(rule => rule.isValid);
+        if (!allValid) {
+            setError('Password does not meet all requirements');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin/settings/password', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                    currentPassword: settingsForm.currentPassword,
+                    newPassword: settingsForm.newPassword
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update password');
+            }
+
+            setSuccessMessage('Password updated successfully');
+            setSettingsForm({
+                ...settingsForm,
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            });
+        } catch (err) {
+            setError('Error updating password: ' + err.message);
+            console.error('Error updating password:', err);
+        }
+    };
+
     const handleLogout = () => {
         if (window.confirm('Do you really want to log out?')) {
             localStorage.removeItem('authToken');
@@ -282,10 +650,9 @@ const AdminDashboard = () => {
                             <FaUser />
                         </div>
                         <div>
-                            <h2 className="font-semibold uppercase">{user?.username}</h2>
+                            <h2 className="poppins-regular uppercase">{user?.username}</h2>
                         </div>
                     </div>
-
                     <nav>
                         <ul className="space-y-2 poppins-regular">
                             <li>
@@ -314,6 +681,14 @@ const AdminDashboard = () => {
                             </li>
                             <li>
                                 <button
+                                    onClick={() => setActiveSection('settings')}
+                                    className={`w-full text-left p-2 rounded flex items-center gap-3 ${activeSection === 'settings' ? 'bg-blue-500 text-white poppins-semibold' : themeClasses.menuItem}`}
+                                >
+                                    <FaCog /> Settings
+                                </button>
+                            </li>
+                            <li>
+                                <button
                                     onClick={handleLogout}
                                     className={`w-full text-left p-2 rounded flex items-center gap-3 ${themeClasses.menuItem}`}
                                 >
@@ -326,18 +701,32 @@ const AdminDashboard = () => {
 
                 {/* Main Content */}
                 <div className="min-h-[85vh] flex-1 p-6">
-                    <h1 className="text-2xl font-bold mb-6 poppins-medium">Admin Dashboard</h1>
+                    <h1 className="text-2xl poppins-regular mb-6 poppins-medium">Admin Dashboard</h1>
 
                     {/* Display error and success messages */}
                     {error && (
-                        <div className="p-3 mb-4 text-sm rounded-md bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-500">
+                        <div className="p-3 mb-4 text-sm rounded-md poppins-regular text-center bg-red-100 border-red-300 border-1 text-red-700 dark:bg-red-900/20 dark:text-red-500 relative">
                             {error}
+                            <button
+                                onClick={() => setError('')}
+                                className="absolute top-3 right-5 font-bold hover:text-red-800 dark:hover:text-red-400"
+                                aria-label="Close error message"
+                            >
+                                ✕
+                            </button>
                         </div>
                     )}
 
                     {successMessage && (
-                        <div className="p-3 mb-4 text-sm rounded-md bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-500">
+                        <div className="p-3 mb-4 text-sm rounded-md poppins-regular text-center bg-green-100 border-green-300 border-1 text-green-700 dark:bg-green-900/20 dark:text-green-500 relative">
                             {successMessage}
+                            <button
+                                onClick={() => setSuccessMessage('')}
+                                className="absolute top-3 right-5 font-bold hover:text-green-800 dark:hover:text-green-400"
+                                aria-label="Close success message"
+                            >
+                                ✕
+                            </button>
                         </div>
                     )}
 
@@ -351,15 +740,15 @@ const AdminDashboard = () => {
                                 {loadingCourses ? (
                                     <p>Loading courses...</p>
                                 ) : courses.length > 0 ? (
-                                    <ul className="list-disc pl-6">
+                                    <ul className="list-decimal pl-6">
                                         {courses.map(course => (
-                                            <li key={course.id} className="mb-2">
-                                                <span className="font-semibold">{course.title}</span>
-                                                <span className="text-sm text-gray-500 dark:text-gray-400"> (ID: {course.id})</span>
+                                            <li key={course.id} className="mb-3">
+                                                <span className="poppins-semibold">{course.title}</span>
+                                                {/* <span className="text-sm poppins-thin text-gray-500 dark:text-gray-400"> ID: {course.id}</span> */}
                                                 {course.sections && course.sections.length > 0 && (
                                                     <ul className="list-circle pl-6 mt-1">
                                                         {course.sections.map(section => (
-                                                            <li key={section.hid} className="text-sm">
+                                                            <li key={section.hid} className="text-sm poppins-light list-disc">
                                                                 {section.heading}
                                                             </li>
                                                         ))}
@@ -369,7 +758,7 @@ const AdminDashboard = () => {
                                         ))}
                                     </ul>
                                 ) : (
-                                    <p>No courses available</p>
+                                    <p className='poppins-regular'>No courses available</p>
                                 )}
                             </div>
                         </div>
@@ -392,24 +781,10 @@ const AdminDashboard = () => {
                             {/* Add Course Form */}
                             {showAddCourseForm && (
                                 <div className={`${themeClasses.card} p-6 rounded-lg border shadow-sm mb-8`}>
-                                    <h3 className="text-lg poppins-medium mb-4">Add New Course</h3>
+                                    <h3 className="text-lg poppins-semibold mb-4">Add New Course</h3>
                                     <form onSubmit={handleAddCourse}>
                                         <div className="mb-4">
-                                            <label htmlFor="id" className="block mb-2 text-sm font-medium">Course ID</label>
-                                            <input
-                                                type="number"
-                                                id="id"
-                                                name="id"
-                                                value={courseForm.id}
-                                                onChange={handleCourseInputChange}
-                                                className={`${themeClasses.input} w-full p-2 rounded-md border`}
-                                                placeholder="Enter numeric ID"
-                                                required
-                                            />
-                                        </div>
-
-                                        <div className="mb-4">
-                                            <label htmlFor="title" className="block mb-2 text-sm font-medium">Course Title</label>
+                                            <label htmlFor="title" className="block mb-2 text-sm poppins-medium">Course Title</label>
                                             <input
                                                 type="text"
                                                 id="title"
@@ -432,6 +807,43 @@ const AdminDashboard = () => {
                                 </div>
                             )}
 
+                            {/* Edit Course Form */}
+                            {showEditCourseForm && (
+                                <div className={`${themeClasses.card} p-6 rounded-lg border shadow-sm mb-8`}>
+                                    <h3 className="text-lg poppins-medium mb-4">Edit Course</h3>
+                                    <form onSubmit={handleEditCourse}>
+                                        <div className="mb-4">
+                                            <label htmlFor="editTitle" className="block mb-2 text-sm poppins-medium">Course Title</label>
+                                            <input
+                                                type="text"
+                                                id="editTitle"
+                                                name="title"
+                                                value={editCourseForm.title}
+                                                onChange={handleEditCourseInputChange}
+                                                className={`${themeClasses.input} w-full p-2 rounded-md border`}
+                                                placeholder="Enter course title"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="submit"
+                                                className={`${themeClasses.button} px-4 py-2 rounded poppins-medium`}
+                                            >
+                                                Update Course
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEditCourseForm(false)}
+                                                className={`bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded poppins-medium`}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
                             {/* Course List */}
                             <div className={`${themeClasses.card} p-6 rounded-lg border shadow-sm`}>
                                 <h3 className="text-lg poppins-medium mb-4">Available Courses</h3>
@@ -445,26 +857,35 @@ const AdminDashboard = () => {
                                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                             <thead>
                                                 <tr>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ID</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Title</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Sections</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+                                                    <th className="px-6 py-3 text-left text-xs poppins-regular uppercase tracking-wider">#</th>
+                                                    <th className="px-6 py-3 text-left text-xs poppins-regular uppercase tracking-wider">Title</th>
+                                                    <th className="px-6 py-3 text-left text-xs poppins-regular uppercase tracking-wider">Sections</th>
+                                                    <th className="px-6 py-3 text-left text-xs poppins-regular uppercase tracking-wider">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                                {courses.map(course => (
+                                                {courses.map((course, index) => (
                                                     <tr key={course.id}>
-                                                        <td className="px-6 py-4 whitespace-nowrap">{course.id}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">{course.title}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">{course.sections ? course.sections.length : 0}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <button
-                                                                onClick={() => handleDeleteCourse(course.id)}
-                                                                className={`${themeClasses.dangerButton} px-3 py-1 rounded-md text-sm flex items-center gap-1`}
-                                                                title="Delete Course"
-                                                            >
-                                                                <FaTrash /> Delete
-                                                            </button>
+                                                        <td className="px-6 py-4 whitespace-nowrap poppins-regular">{index + 1}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap poppins-regular">{course.title}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap poppins-regular">{course.sections ? course.sections.length : 0}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap poppins-regular">
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => handleEditCourseClick(course)}
+                                                                    className={`bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1`}
+                                                                    title="Edit Course"
+                                                                >
+                                                                    <FaEdit /> Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteCourse(course.id)}
+                                                                    className={`${themeClasses.dangerButton} px-3 py-1 rounded-md text-sm flex items-center gap-1`}
+                                                                    title="Delete Course"
+                                                                >
+                                                                    <FaTrash /> Delete
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -497,7 +918,7 @@ const AdminDashboard = () => {
                                                     ? 'bg-blue-500 text-white'
                                                     : `${themeClasses.card} hover:bg-gray-100 dark:hover:bg-gray-700`}`}
                                             >
-                                                <h4 className="font-semibold">{course.title}</h4>
+                                                <h4 className="poppins-regular">{course.title}</h4>
                                                 <p className="text-sm opacity-75">ID: {course.id}</p>
                                                 <p className="text-sm mt-2">{course.sections?.length || 0} section(s)</p>
                                             </button>
@@ -514,7 +935,10 @@ const AdminDashboard = () => {
                                     {/* Section Controls */}
                                     <div className="flex flex-wrap gap-4 mb-6">
                                         <button
-                                            onClick={() => setShowAddSectionForm(!showAddSectionForm)}
+                                            onClick={() => {
+                                                setShowAddSectionForm(!showAddSectionForm);
+                                                setShowEditSectionForm(false);
+                                            }}
                                             className={`${themeClasses.button} px-4 py-2 rounded poppins-medium flex items-center gap-2`}
                                         >
                                             {showAddSectionForm ? 'Cancel' : <><FaPlus /> Add New Section</>}
@@ -529,21 +953,7 @@ const AdminDashboard = () => {
                                             </h3>
                                             <form onSubmit={handleAddSection}>
                                                 <div className="mb-4">
-                                                    <label htmlFor="hid" className="block mb-2 text-sm font-medium">Section ID</label>
-                                                    <input
-                                                        type="number"
-                                                        id="hid"
-                                                        name="hid"
-                                                        value={sectionForm.hid}
-                                                        onChange={handleSectionInputChange}
-                                                        className={`${themeClasses.input} w-full p-2 rounded-md border`}
-                                                        placeholder="Enter numeric ID"
-                                                        required
-                                                    />
-                                                </div>
-
-                                                <div className="mb-4">
-                                                    <label htmlFor="heading" className="block mb-2 text-sm font-medium">Section Heading</label>
+                                                    <label htmlFor="heading" className="block mb-2 text-sm poppins-regular">Section Heading</label>
                                                     <input
                                                         type="text"
                                                         id="heading"
@@ -555,9 +965,8 @@ const AdminDashboard = () => {
                                                         required
                                                     />
                                                 </div>
-
                                                 <div className="mb-4">
-                                                    <label htmlFor="content" className="block mb-2 text-sm font-medium">Section Content</label>
+                                                    <label htmlFor="content" className="block mb-2 text-sm poppins-regular">Section Content</label>
                                                     <textarea
                                                         id="content"
                                                         name="content"
@@ -569,9 +978,8 @@ const AdminDashboard = () => {
                                                         required
                                                     ></textarea>
                                                 </div>
-
                                                 <div className="mb-4">
-                                                    <label htmlFor="vcontent" className="block mb-2 text-sm font-medium">Video Content URL</label>
+                                                    <label htmlFor="vcontent" className="block mb-2 text-sm poppins-regular">Video Content URL</label>
                                                     <input
                                                         type="text"
                                                         id="vcontent"
@@ -583,13 +991,77 @@ const AdminDashboard = () => {
                                                     />
                                                     <p className="text-xs mt-1 opacity-75">Optional: Add a YouTube link (e.g., https://youtube.com/watch?v=12345) or direct video URL</p>
                                                 </div>
-
                                                 <button
                                                     type="submit"
                                                     className={`${themeClasses.button} px-4 py-2 rounded poppins-medium`}
                                                 >
                                                     Add Section
                                                 </button>
+                                            </form>
+                                        </div>
+                                    )}
+
+                                    {/* Edit Section Form */}
+                                    {showEditSectionForm && (
+                                        <div className={`${themeClasses.card} p-6 rounded-lg border shadow-sm mb-6`}>
+                                            <h3 className="text-lg poppins-medium mb-4">
+                                                Edit Section in &quot;{selectedCourse.title}&quot;
+                                            </h3>
+                                            <form onSubmit={handleEditSection}>
+                                                <div className="mb-4">
+                                                    <label htmlFor="editHeading" className="block mb-2 text-sm poppins-regular">Section Heading</label>
+                                                    <input
+                                                        type="text"
+                                                        id="editHeading"
+                                                        name="heading"
+                                                        value={editSectionForm.heading}
+                                                        onChange={handleEditSectionInputChange}
+                                                        className={`${themeClasses.input} w-full p-2 rounded-md border`}
+                                                        placeholder="Enter section heading"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="mb-4">
+                                                    <label htmlFor="editContent" className="block mb-2 text-sm poppins-regular">Section Content</label>
+                                                    <textarea
+                                                        id="editContent"
+                                                        name="content"
+                                                        value={editSectionForm.content}
+                                                        onChange={handleEditSectionInputChange}
+                                                        rows="6"
+                                                        className={`${themeClasses.input} w-full p-2 rounded-md border`}
+                                                        placeholder="Enter section content"
+                                                        required
+                                                    ></textarea>
+                                                </div>
+                                                <div className="mb-4">
+                                                    <label htmlFor="editVcontent" className="block mb-2 text-sm poppins-regular">Video Content URL</label>
+                                                    <input
+                                                        type="text"
+                                                        id="editVcontent"
+                                                        name="vcontent"
+                                                        value={editSectionForm.vcontent}
+                                                        onChange={handleEditSectionInputChange}
+                                                        className={`${themeClasses.input} w-full p-2 rounded-md border`}
+                                                        placeholder="Enter YouTube URL or direct video link"
+                                                    />
+                                                    <p className="text-xs mt-1 opacity-75">Optional: Add a YouTube link (e.g., https://youtube.com/watch?v=12345) or direct video URL</p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="submit"
+                                                        className={`${themeClasses.button} px-4 py-2 rounded poppins-medium`}
+                                                    >
+                                                        Update Section
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowEditSectionForm(false)}
+                                                        className={`bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded poppins-medium`}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
                                             </form>
                                         </div>
                                     )}
@@ -604,17 +1076,17 @@ const AdminDashboard = () => {
                                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                                     <thead>
                                                         <tr>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ID</th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Heading</th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Video</th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+                                                            <th className="px-6 py-3 text-left text-xs poppins-regular uppercase tracking-wider">#</th>
+                                                            <th className="px-6 py-3 text-left text-xs poppins-regular uppercase tracking-wider">Heading</th>
+                                                            <th className="px-6 py-3 text-left text-xs poppins-regular uppercase tracking-wider">Video</th>
+                                                            <th className="px-6 py-3 text-left text-xs poppins-regular uppercase tracking-wider">Actions</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                                        {selectedCourse.sections.map(section => (
+                                                        {selectedCourse.sections.map((section, index) => (
                                                             <tr key={section.hid}>
-                                                                <td className="px-6 py-4 whitespace-nowrap">{section.hid}</td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">{section.heading}</td>
+                                                                <td className="px-6 py-4 whitespace-nowrap poppins-regular">{index + 1}</td>
+                                                                <td className="px-6 py-4 whitespace-nowrap poppins-regular">{section.heading}</td>
                                                                 <td className="px-6 py-4">
                                                                     {section.vcontent ? (
                                                                         <span className="px-2 py-1 text-xs rounded-md bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-500">
@@ -626,14 +1098,23 @@ const AdminDashboard = () => {
                                                                         </span>
                                                                     )}
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <button
-                                                                        onClick={() => handleDeleteSection(selectedCourse.id, section.hid)}
-                                                                        className={`${themeClasses.dangerButton} px-3 py-1 rounded-md text-sm flex items-center gap-1`}
-                                                                        title="Delete Section"
-                                                                    >
-                                                                        <FaTrash /> Delete
-                                                                    </button>
+                                                                <td className="px-6 py-4 whitespace-nowrap poppins-regular">
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            onClick={() => handleEditSectionClick(section)}
+                                                                            className={`bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1`}
+                                                                            title="Edit Section"
+                                                                        >
+                                                                            <FaEdit /> Edit
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDeleteSection(selectedCourse.id, section.hid)}
+                                                                            className={`${themeClasses.dangerButton} px-3 py-1 rounded-md text-sm flex items-center gap-1`}
+                                                                            title="Delete Section"
+                                                                        >
+                                                                            <FaTrash /> Delete
+                                                                        </button>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -641,11 +1122,118 @@ const AdminDashboard = () => {
                                                 </table>
                                             </div>
                                         ) : (
-                                            <p className="py-4 text-center">No sections available for this course</p>
+                                            <p className="py-4 text-center poppins-medium">No sections available for this course</p>
                                         )}
                                     </div>
                                 </>
                             )}
+                        </div>
+                    )}
+
+                    {activeSection === 'settings' && (
+                        <div>
+                            <h2 className="text-xl underline font-semibold mb-6 poppins-semibold">Account Settings</h2>
+
+                            {error && (
+                                <div className={`p-4 mb-6 rounded-md ${isDarkMode ? 'bg-red-900/20' : 'bg-red-100'} text-red-500`}>
+                                    {error}
+                                </div>
+                            )}
+
+                            {successMessage && (
+                                <div className={`p-4 mb-6 rounded-md ${isDarkMode ? 'bg-green-900/20' : 'bg-green-100'} text-green-500`}>
+                                    {successMessage}
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Update Email Form */}
+                                <div className={`${themeClasses.card} p-6 rounded-lg border shadow-sm`}>
+                                    <h3 className="text-lg poppins-medium mb-4">Update Email</h3>
+                                    <form onSubmit={handleUpdateEmail}>
+                                        <div className="mb-4">
+                                            <label htmlFor="email" className="block mb-2 text-sm poppins-regular">Email Address</label>
+                                            <input
+                                                type="email"
+                                                id="email"
+                                                name="email"
+                                                value={settingsForm.email}
+                                                onChange={handleSettingsInputChange}
+                                                className={`${themeClasses.input} w-full p-2 rounded-md border`}
+                                                placeholder="Enter new email address"
+                                                required
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            className={`${themeClasses.button} px-4 py-2 rounded poppins-medium`}
+                                        >
+                                            Update Email
+                                        </button>
+                                    </form>
+                                </div>
+
+                                {/* Update Password Form */}
+                                <div className={`${themeClasses.card} p-6 rounded-lg border shadow-sm`}>
+                                    <h3 className="text-lg poppins-medium mb-4">Update Password</h3>
+                                    <form onSubmit={handleUpdatePassword}>
+                                        <div className="mb-4">
+                                            <label htmlFor="currentPassword" className="block mb-2 text-sm poppins-regular">Current Password</label>
+                                            <input
+                                                type="password"
+                                                id="currentPassword"
+                                                name="currentPassword"
+                                                value={settingsForm.currentPassword}
+                                                onChange={handleSettingsInputChange}
+                                                className={`${themeClasses.input} w-full p-2 rounded-md border`}
+                                                placeholder="Enter current password"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="mb-4">
+                                            <label htmlFor="newPassword" className="block mb-2 text-sm poppins-regular">New Password</label>
+                                            <input
+                                                type="password"
+                                                id="newPassword"
+                                                name="newPassword"
+                                                value={settingsForm.newPassword}
+                                                onChange={handleSettingsInputChange}
+                                                className={`${themeClasses.input} w-full p-2 rounded-md border`}
+                                                placeholder="Enter new password"
+                                                required
+                                            />
+                                            <div className="mt-2 space-y-1">
+                                                {passwordValidation.map(rule => (
+                                                    <ValidationItem
+                                                        key={rule.id}
+                                                        isValid={rule.isValid}
+                                                        text={rule.text}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="mb-4">
+                                            <label htmlFor="confirmPassword" className="block mb-2 text-sm poppins-regular">Confirm New Password</label>
+                                            <input
+                                                type="password"
+                                                id="confirmPassword"
+                                                name="confirmPassword"
+                                                value={settingsForm.confirmPassword}
+                                                onChange={handleSettingsInputChange}
+                                                className={`${themeClasses.input} w-full p-2 rounded-md border`}
+                                                placeholder="Confirm new password"
+                                                required
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            className={`${themeClasses.button} px-4 py-2 rounded poppins-medium`}
+                                        >
+                                            Update Password
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     )}
 

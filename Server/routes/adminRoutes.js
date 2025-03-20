@@ -1,6 +1,26 @@
 const express = require("express");
 const router = express.Router();
 const NewCourse = require("../Models/NewCourse");
+const User = require("../Models/User");
+const jwt = require("jsonwebtoken");
+
+// Add this constant
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+
+// Helper function to extract user ID from token
+const getUserIdFromToken = (req) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return null;
+    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded.id;
+  } catch (error) {
+    console.error("Error extracting user ID from token:", error);
+    return null;
+  }
+};
 
 // Get all courses
 router.get("/courses", async (req, res) => {
@@ -76,13 +96,13 @@ router.delete("/courses/:courseId", async (req, res) => {
 router.post("/courses/:courseId/sections", async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { heading, content, hid, vcontent, tcontent } = req.body;
+    const { heading, content, vcontent } = req.body;
 
-    // Validate required fields
-    if (!heading || !content || !hid) {
+    // Validate required fields - remove hid requirement
+    if (!heading || !content) {
       return res
         .status(400)
-        .json({ message: "Heading, content, and hid are required" });
+        .json({ message: "Heading and content are required" });
     }
 
     // Check if course exists
@@ -91,24 +111,14 @@ router.post("/courses/:courseId/sections", async (req, res) => {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    // Check if section with same hid already exists
-    const sectionExists = course.sections.some((section) => section.hid == hid);
-    if (sectionExists) {
-      return res
-        .status(400)
-        .json({ message: "Section with this ID already exists" });
-    }
-
-    // Add new section (using both tcontent and vcontent)
+    // Add new section without specifying hid (it will be auto-incremented)
     course.sections.push({
       heading,
-      content,
-      tcontent: tcontent || content, // Use tcontent if provided, otherwise use content
-      hid,
-      vcontent: vcontent || "", // Make sure vcontent is included with default empty string
+      tcontent: content, // Map content to tcontent field
+      vcontent: vcontent || "",
     });
-    await course.save();
 
+    await course.save();
     res.status(201).json(course);
   } catch (error) {
     console.error("Error adding section:", error);
@@ -142,6 +152,247 @@ router.delete("/courses/:courseId/sections/:sectionId", async (req, res) => {
     res.json({ message: "Section deleted successfully" });
   } catch (error) {
     console.error("Error deleting section:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update course
+router.put("/courses/:courseId", async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { title } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ message: "Course title is required" });
+    }
+
+    const course = await NewCourse.findOne({ id: courseId });
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    course.title = title;
+    await course.save();
+
+    res.json({ message: "Course updated successfully", course });
+  } catch (error) {
+    console.error("Error updating course:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Alternative POST endpoint for course updates (fallback if PUT doesn't work)
+router.post("/courses/:courseId/update", async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { title } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ message: "Course title is required" });
+    }
+
+    const course = await NewCourse.findOne({ id: courseId });
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    course.title = title;
+    await course.save();
+
+    res.json({ message: "Course updated successfully", course });
+  } catch (error) {
+    console.error("Error updating course:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update section in a course
+router.put("/courses/:courseId/sections/:sectionId", async (req, res) => {
+  try {
+    const { courseId, sectionId } = req.params;
+    const { heading, content, vcontent } = req.body;
+
+    // Validate required fields
+    if (!heading || !content) {
+      return res
+        .status(400)
+        .json({ message: "Section heading and content are required" });
+    }
+
+    // Find the course
+    const course = await NewCourse.findOne({ id: courseId });
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    // Find the section within the course
+    const sectionIndex = course.sections.findIndex(
+      (section) => section.hid == sectionId
+    );
+    if (sectionIndex === -1) {
+      return res.status(404).json({ message: "Section not found" });
+    }
+
+    // Update the section
+    course.sections[sectionIndex].heading = heading;
+    course.sections[sectionIndex].tcontent = content;
+    course.sections[sectionIndex].vcontent = vcontent || "";
+
+    // Save the updated course
+    await course.save();
+    res.json({ message: "Section updated successfully", course });
+  } catch (error) {
+    console.error("Error updating section:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Alternative POST endpoint for section updates (fallback if PUT doesn't work)
+router.post(
+  "/courses/:courseId/sections/:sectionId/update",
+  async (req, res) => {
+    try {
+      const { courseId, sectionId } = req.params;
+      const { heading, content, vcontent } = req.body;
+
+      // Validate required fields
+      if (!heading || !content) {
+        return res
+          .status(400)
+          .json({ message: "Section heading and content are required" });
+      }
+
+      // Find the course
+      const course = await NewCourse.findOne({ id: courseId });
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      // Find the section within the course
+      const sectionIndex = course.sections.findIndex(
+        (section) => section.hid == sectionId
+      );
+      if (sectionIndex === -1) {
+        return res.status(404).json({ message: "Section not found" });
+      }
+
+      // Update the section
+      course.sections[sectionIndex].heading = heading;
+      course.sections[sectionIndex].tcontent = content;
+      course.sections[sectionIndex].vcontent = vcontent || "";
+
+      // Save the updated course
+      await course.save();
+      res.json({ message: "Section updated successfully", course });
+    } catch (error) {
+      console.error("Error updating section:", error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Admin Settings Routes
+router.put("/settings/email", async (req, res) => {
+  try {
+    const userId = getUserIdFromToken(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { email } = req.body;
+
+    // Validate email
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Check if email is already in use by another user
+    const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "Email already in use by another account" });
+    }
+
+    // Update user's email
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.email = email;
+    await user.save();
+
+    res.json({ message: "Email updated successfully" });
+  } catch (error) {
+    console.error("Error updating email:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/settings/password", async (req, res) => {
+  try {
+    const userId = getUserIdFromToken(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Current password and new password are required" });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    // Password validation
+    if (newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 8 characters" });
+    }
+
+    // Update password
+    user.password = newPassword; // The pre-save hook will hash it
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Profile route to get user data
+router.get("/profile", async (req, res) => {
+  try {
+    const userId = getUserIdFromToken(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Find user without returning the password
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error("Error retrieving user profile:", error);
     res.status(500).json({ message: error.message });
   }
 });
