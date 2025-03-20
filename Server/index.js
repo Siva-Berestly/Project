@@ -3,6 +3,7 @@ const connectDB = require("./Database/db");
 const path = require("path");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -24,37 +25,41 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+
+// Maintain backward compatibility with existing frontend code
+// These routes redirect to the new admin routes
+app.get("/api/newcourses", (req, res) => {
+  res.redirect(307, "/api/admin/courses");
+});
+
+app.get("/api/newcourses/:courseId/sections/:headingId", (req, res) => {
+  const { courseId, headingId } = req.params;
+  res.redirect(307, `/api/admin/courses/${courseId}/sections/${headingId}`);
+});
+
+app.post("/api/newcourses", (req, res) => {
+  res.redirect(307, "/api/admin/courses");
+});
+
+app.delete("/api/newcourses/:courseId", (req, res) => {
+  const { courseId } = req.params;
+  res.redirect(307, `/api/admin/courses/${courseId}`);
+});
+
+// Add redirects for section endpoints
+app.post("/api/newcourses/:courseId/sections", (req, res) => {
+  const { courseId } = req.params;
+  res.redirect(307, `/api/admin/courses/${courseId}/sections`);
+});
+
+app.delete("/api/newcourses/:courseId/sections/:sectionId", (req, res) => {
+  const { courseId, sectionId } = req.params;
+  res.redirect(307, `/api/admin/courses/${courseId}/sections/${sectionId}`);
+});
 
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, "../Client/build")));
-
-app.get("/api/newcourses", async (req, res) => {
-  try {
-    const courses = await NewCourse.find();
-    res.json(courses);
-  } catch (error) {
-    console.error("Error fetching courses:", error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
-app.get("/api/newcourses/:courseId/sections/:headingId", async (req, res) => {
-  try {
-    const { courseId, headingId } = req.params;
-    const course = await NewCourse.findOne({ id: courseId });
-    if (!course) {
-      return res.status(404).json({ message: "Course not found" });
-    }
-    const section = course.sections.find((section) => section.hid == headingId);
-    if (!section) {
-      return res.status(404).json({ message: "Section not found" });
-    }
-    res.json(section);
-  } catch (error) {
-    console.error("Error fetching section:", error);
-    res.status(500).json({ message: error.message });
-  }
-});
 
 // The "catch-all" route should be last
 app.get("*", (req, res) => {
