@@ -4,6 +4,29 @@ import PropTypes from 'prop-types';
 import { HiMicrophone, HiX } from "react-icons/hi";
 import VoiceRecognitionService from '../services/VoiceRecognitionService';
 
+const initializeAudio = async () => {
+    try {
+        // Create and play a silent sound to unlock audio
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        oscillator.frequency.value = 0; // Silent
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(0.001); // Very short
+
+        // Also try to unlock speech synthesis
+        const utterance = new SpeechSynthesisUtterance('');
+        utterance.volume = 0;
+        utterance.rate = 10;
+        speechSynthesis.speak(utterance);
+
+        return true;
+    } catch (err) {
+        console.error("Error initializing audio:", err);
+        return false;
+    }
+};
+
 const VoiceCommandWidget = ({ commands }) => {
     const [isListening, setIsListening] = useState(false);
     const [lastTranscript, setLastTranscript] = useState('');
@@ -11,6 +34,7 @@ const VoiceCommandWidget = ({ commands }) => {
     const [micPermission, setMicPermission] = useState(false);
     const [isWidgetExpanded, setIsWidgetExpanded] = useState(false);
     const [needsInteraction, setNeedsInteraction] = useState(true);
+    const [audioInitialized, setAudioInitialized] = useState(false);
     const location = useLocation();
 
     const handleActivation = useCallback(async () => {
@@ -150,6 +174,40 @@ const VoiceCommandWidget = ({ commands }) => {
         }
     }, [processTranscript]);
 
+    const handleAudioInit = async () => {
+        if (!audioInitialized) {
+            const success = await initializeAudio();
+            if (success) {
+                setAudioInitialized(true);
+                setNeedsInteraction(false);
+
+                // Also initialize the services
+                if (VoiceRecognitionService) {
+                    await VoiceRecognitionService.initAudio();
+                }
+
+                if (window.TextToSpeechService) {
+                    await window.TextToSpeechService.initAudio();
+                }
+            }
+        }
+    };
+
+    useEffect(() => {
+        // Add document-wide handlers to enable audio on any user interaction
+        const enableAudioOnInteraction = () => {
+            handleAudioInit();
+        };
+
+        document.addEventListener('click', enableAudioOnInteraction);
+        document.addEventListener('keydown', enableAudioOnInteraction);
+
+        return () => {
+            document.removeEventListener('click', enableAudioOnInteraction);
+            document.removeEventListener('keydown', enableAudioOnInteraction);
+        };
+    }, [audioInitialized]);
+
     useEffect(() => {
         const handleInteraction = async () => {
             if (needsInteraction) {
@@ -176,7 +234,10 @@ const VoiceCommandWidget = ({ commands }) => {
     if (!isWidgetExpanded) {
         return (
             <button
-                onClick={handleActivation}
+                onClick={() => {
+                    handleAudioInit(); // Initialize audio on click
+                    handleActivation();
+                }}
                 className="fixed bottom-4 right-4 p-4 bg-gray-800 border-2 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors"
             >
                 <HiMicrophone size={24} />
@@ -187,9 +248,9 @@ const VoiceCommandWidget = ({ commands }) => {
     return (
         <div className="fixed bottom-4 right-4 p-4 bg-gray-800 text-white rounded-lg shadow-lg z-[9999] max-w-xs w-72">
             <div className="flex flex-col space-y-2">
-                {needsInteraction && (
+                {needsInteraction && !audioInitialized && (
                     <div className="bg-yellow-600 p-2 rounded text-sm mb-2">
-                        Click anywhere on the page to enable voice responses
+                        <p>Click anywhere to enable voice features</p>
                     </div>
                 )}
                 <div className="flex justify-between items-center border-b border-gray-600 pb-2">

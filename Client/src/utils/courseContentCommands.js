@@ -1,3 +1,5 @@
+import FeedbackService from "./feedbackService";
+
 const generateCourseContentCommands = (
   section,
   navigate,
@@ -5,13 +7,10 @@ const generateCourseContentCommands = (
   speakText,
   pauseSpeech,
   resumeSpeech,
-  restartSpeech
+  restartSpeech,
+  stopSpeech
 ) => {
-  if (!section || !section.heading) {
-    console.error("Section or section heading is undefined:", section);
-    return [];
-  }
-
+  // Always provide valid commands, even if section isn't loaded yet
   const baseCommands = [
     {
       keyword: [
@@ -24,9 +23,30 @@ const generateCourseContentCommands = (
         "start reading",
         "start reading the text",
       ],
-      action: () => {
-        VoiceRecognitionService.speak("Reading the text aloud.");
-        speakText(section.tcontent);
+      action: async () => {
+        try {
+          await FeedbackService.provideFeedback("Reading the text aloud.");
+          // Only read if section is available
+          if (section && section.tcontent) {
+            // Use setTimeout to give a moment between voice command response and text reading
+            setTimeout(() => {
+              try {
+                speakText(section.tcontent);
+              } catch (err) {
+                console.error("Error starting text reading:", err);
+                FeedbackService.provideFeedback(
+                  "I'm having trouble reading the text. Please try again."
+                );
+              }
+            }, 500);
+          } else {
+            await FeedbackService.provideFeedback(
+              "Sorry, content is not available yet."
+            );
+          }
+        } catch (err) {
+          console.error("Error in read command:", err);
+        }
       },
       displayName: "Start reading the text",
     },
@@ -38,21 +58,26 @@ const generateCourseContentCommands = (
         "go back to course",
         "go back",
       ],
-      action: () => {
+      action: async () => {
+        await FeedbackService.provideFeedback("Going back to course page.");
         navigate("/courses");
-        VoiceRecognitionService.speak("Going back to course page.");
       },
       displayName: "Go back to course page",
     },
     {
       keyword: ["go to home", "go to home page", "go home"],
-      action: () => {
+      action: async () => {
+        await FeedbackService.provideFeedback("Navigating to home page.");
         navigate(`/`);
-        VoiceRecognitionService.speak("Navigating to home page");
       },
       displayName: "Go to home",
     },
   ];
+
+  // If section is not available, return only base commands
+  if (!section || !section.heading) {
+    return { baseCommands, readingCommands: [] };
+  }
 
   const readingCommands = [
     {
@@ -62,11 +87,26 @@ const generateCourseContentCommands = (
         "pause reading",
         "pause",
         "stop",
-        "stop reading",
       ],
-      action: () => {
-        VoiceRecognitionService.speak("Pausing the text.");
-        pauseSpeech();
+      action: async () => {
+        try {
+          const paused = await pauseSpeech();
+          if (paused) {
+            setTimeout(async () => {
+              if (!VoiceRecognitionService.isListening) {
+                await VoiceRecognitionService.start();
+              }
+              await FeedbackService.provideFeedback("Pausing the text.");
+            }, 100);
+          } else {
+            await FeedbackService.provideFeedback("Unable to pause the text.");
+          }
+        } catch (err) {
+          console.error("Error in pause command:", err);
+          await FeedbackService.provideFeedback(
+            "An error occurred while pausing."
+          );
+        }
       },
       displayName: "Pause reading",
     },
@@ -79,21 +119,53 @@ const generateCourseContentCommands = (
         "continue",
         "continue reading",
       ],
-      action: () => {
-        VoiceRecognitionService.speak("Resuming the text.");
-        resumeSpeech();
+      action: async () => {
+        try {
+          const resumed = await resumeSpeech();
+          if (resumed) {
+            setTimeout(async () => {
+              if (!VoiceRecognitionService.isListening) {
+                await VoiceRecognitionService.start();
+              }
+              await FeedbackService.provideFeedback("Resuming the text.");
+            }, 100);
+          } else {
+            await FeedbackService.provideFeedback("Unable to resume the text.");
+          }
+        } catch (err) {
+          console.error("Error in resume command:", err);
+          await FeedbackService.provideFeedback(
+            "An error occurred while resuming."
+          );
+        }
       },
       displayName: "Resume reading",
     },
     {
       keyword: ["restart the text", "restart text from beginning", "restart"],
-      action: () => {
-        VoiceRecognitionService.speak(
+      action: async () => {
+        await FeedbackService.provideFeedback(
           "Restarting the text from the beginning."
         );
         restartSpeech();
       },
       displayName: "Restart reading",
+    },
+    {
+      keyword: ["end reading", "finish reading", "terminate reading"],
+      action: async () => {
+        await FeedbackService.provideFeedback(
+          "Stopping the reading completely. You can start again by saying 'start reading'."
+        );
+        stopSpeech(); // First stop the speech
+        // Allow time for stopSpeech to complete its operation
+        setTimeout(async () => {
+          if (!VoiceRecognitionService.isListening) {
+            await VoiceRecognitionService.start();
+          }
+        }, 100);
+      },
+      displayName: "End reading",
     },
   ];
 

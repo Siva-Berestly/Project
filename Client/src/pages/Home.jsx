@@ -69,7 +69,7 @@ const Home = () => {
   return (
     <>
       <VoiceCommandWidget commands={commands.filter(cmd => cmd.displayName !== "go to home")} />
-      <div className="min-h-screen py-10" style={{ zoom: `${zoomLevel}%` }}>
+      <div className="py-10" style={{ zoom: `${zoomLevel}%` }}>
         <div className="container mx-auto px-4">
           <div className="flex justify-end mb-4">
             <button

@@ -7,6 +7,7 @@ import { FaPlus, FaMinus, FaUndo } from "react-icons/fa";
 import { FaStop } from "react-icons/fa6";
 import VoiceCommandWidget from "../components/VoiceCommandWidget";
 import VoiceRecognitionService from "../services/VoiceRecognitionService";
+import TextToSpeechService from "../services/TextToSpeechService";
 import generateCourseContentCommands from "../utils/courseContentCommands";
 
 const CourseContent = () => {
@@ -21,8 +22,11 @@ const CourseContent = () => {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [showSpeechControls, setShowSpeechControls] = useState(false);
-    const utteranceRef = useRef(null);
     const [commands, setCommands] = useState([]);
+    const voiceRecognitionStateRef = useRef({ active: false });
+    const currentCommandsRef = useRef([]);
+    const stopButtonRef = useRef(null);
+    const [isAudioInitialized, setIsAudioInitialized] = useState(false);
 
     useEffect(() => {
         const fetchSection = async () => {
@@ -41,108 +45,238 @@ const CourseContent = () => {
         fetchSection();
     }, [courseId, headingId]);
 
-    useEffect(() => {
-        if (section) {
-            const { baseCommands } = generateCourseContentCommands(
-                section,
-                navigate,
-                VoiceRecognitionService,
-                speakText,
-                pauseSpeech,
-                resumeSpeech,
-                restartSpeech
-            );
-            setCommands(baseCommands);
+    const initAudioOnUserInteraction = async () => {
+        try {
+            await TextToSpeechService.initAudio();
+            await VoiceRecognitionService.initAudio();
+
+            // Make services accessible globally
+            window.TextToSpeechService = TextToSpeechService;
+            window.VoiceRecognitionService = VoiceRecognitionService;
+
+            setIsAudioInitialized(true);
+            console.log("Audio initialized successfully");
+        } catch (error) {
+            console.error("Failed to initialize audio:", error);
         }
-    }, [section, navigate]);
+    };
 
-    const speakText = (text) => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utteranceRef.current = utterance;
-        const sentences = text.split(". ");
-        let sentenceIndex = 0;
-        let wordIndex = 0;
+    useEffect(() => {
+        // Try to initialize audio automatically
+        initAudioOnUserInteraction();
 
-        utterance.onboundary = (event) => {
-            if (event.name === "word") {
-                const words = sentences[sentenceIndex].split(" ");
-                setHighlightedText(words[wordIndex]);
-                setHighlightedSentenceIndex(sentenceIndex);
-                wordIndex++;
-                if (wordIndex >= words.length) {
-                    wordIndex = 0;
-                    sentenceIndex++;
+        // Add a document-wide click handler to initialize audio on user interaction
+        const handleUserInteraction = () => {
+            if (!isAudioInitialized) {
+                initAudioOnUserInteraction();
+            }
+        };
+
+        document.addEventListener('click', handleUserInteraction);
+        document.addEventListener('keydown', handleUserInteraction);
+
+        return () => {
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+        };
+    }, [isAudioInitialized]);
+
+    useEffect(() => {
+        // Set up the text-to-speech callbacks
+        TextToSpeechService.registerCallbacks({
+            onStart: () => {
+                // Only save voice recognition state if we're actually starting a new reading
+                if (!isSpeaking) {
+                    // Store voice recognition state before pausing
+                    voiceRecognitionStateRef.current = {
+                        active: VoiceRecognitionService.isListening,
+                        isCommandsActive: VoiceRecognitionService.isCommandsActive()
+                    };
+                }
+
+                // Don't stop voice recognition - we want commands to still work
+                // Just update commands to reading-specific ones
+
+                setIsSpeaking(true);
+                setIsPaused(false);
+                setShowSpeechControls(true);
+
+                if (section) {
+                    const { readingCommands } = generateCourseContentCommands(
+                        section,
+                        navigate,
+                        VoiceRecognitionService,
+                        speakText,
+                        pauseSpeech,
+                        resumeSpeech,
+                        restartSpeech,
+                        stopSpeech
+                    );
+                    setCommands(readingCommands);
+                    currentCommandsRef.current = readingCommands;
+                }
+            },
+            onEnd: () => {
+                setHighlightedText("");
+                setHighlightedSentenceIndex(0);
+                setIsSpeaking(false);
+                setIsPaused(false);
+                setShowSpeechControls(false);
+
+                if (section) {
+                    const { baseCommands } = generateCourseContentCommands(
+                        section,
+                        navigate,
+                        VoiceRecognitionService,
+                        speakText,
+                        pauseSpeech,
+                        resumeSpeech,
+                        restartSpeech,
+                        stopSpeech
+                    );
+                    setCommands(baseCommands);
+                    currentCommandsRef.current = baseCommands;
+                }
+            },
+            onPause: () => {
+                setIsPaused(true);
+            },
+            onResume: () => {
+                setIsPaused(false);
+            },
+            onBoundary: (event) => {
+                if (!event || !section || !section.tcontent) return;
+
+                if (event.name === "word") {
+                    try {
+                        const sentences = section.tcontent.split(". ");
+                        let sentenceIndex = 0;
+                        let wordIndex = 0;
+                        let totalChars = 0;
+
+                        // Find which sentence and word we're at based on char position
+                        for (let i = 0; i < sentences.length; i++) {
+                            const words = sentences[i].split(" ");
+                            const sentenceLength = sentences[i].length + 2; // Add 2 for ". "
+
+                            if (totalChars + sentenceLength > event.charIndex) {
+                                sentenceIndex = i;
+                                // Find word in sentence
+                                let wordCharCount = 0;
+                                for (let j = 0; j < words.length; j++) {
+                                    const wordLength = words[j].length + 1; // Add 1 for space
+                                    if (wordCharCount + wordLength + totalChars > event.charIndex) {
+                                        wordIndex = j;
+                                        break;
+                                    }
+                                    wordCharCount += wordLength;
+                                }
+                                break;
+                            }
+                            totalChars += sentenceLength;
+                        }
+
+                        if (sentenceIndex < sentences.length &&
+                            wordIndex < sentences[sentenceIndex].split(" ").length) {
+                            const words = sentences[sentenceIndex].split(" ");
+                            setHighlightedText(words[wordIndex]);
+                            setHighlightedSentenceIndex(sentenceIndex);
+                        }
+                    } catch (err) {
+                        console.error("Error highlighting text:", err);
+                    }
+                }
+            }
+        });
+
+        // Add special handling for the "stop reading completely" command
+        const handleStopCompletely = async (transcript) => {
+            if (isSpeaking &&
+                (transcript.includes("stop completely") ||
+                    transcript.includes("stop reading") ||
+                    transcript.includes("end reading") ||
+                    transcript.includes("finish reading") ||
+                    transcript.includes("terminate reading"))) {
+                if (stopButtonRef.current) {
+                    stopButtonRef.current.click(); // Simulate clicking the stop button
                 }
             }
         };
 
-        utterance.onend = () => {
-            setHighlightedText("");
-            setHighlightedSentenceIndex(0);
-            setIsSpeaking(false);
-            setIsPaused(false);
-            setShowSpeechControls(false);
-            const { baseCommands } = generateCourseContentCommands(
+        const originalOnResult = VoiceRecognitionService.callbacks.onResult;
+        VoiceRecognitionService.subscribe({
+            onResult: (transcript) => {
+                if (originalOnResult) originalOnResult(transcript);
+                handleStopCompletely(transcript);
+            }
+        });
+
+        return () => {
+            // Clean up
+            TextToSpeechService.stop();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (section) {
+            const cmds = generateCourseContentCommands(
                 section,
                 navigate,
                 VoiceRecognitionService,
                 speakText,
                 pauseSpeech,
                 resumeSpeech,
-                restartSpeech
+                restartSpeech,
+                stopSpeech
             );
-            setCommands(baseCommands);
-        };
 
-        speechSynthesis.speak(utterance);
-        setIsSpeaking(true);
-        setIsPaused(false);
-        setShowSpeechControls(true);
-        const { readingCommands } = generateCourseContentCommands(
-            section,
-            navigate,
-            VoiceRecognitionService,
-            speakText,
-            pauseSpeech,
-            resumeSpeech,
-            restartSpeech
-        );
-        setCommands(readingCommands);
+            // Use the appropriate commands based on current state
+            const newCommands = isSpeaking ? cmds.readingCommands : cmds.baseCommands;
+            setCommands(newCommands);
+            currentCommandsRef.current = newCommands;
+        }
+    }, [section, navigate, isSpeaking]);
+
+    const speakText = (text) => {
+        // If audio is not initialized, try to initialize it first
+        if (!isAudioInitialized) {
+            initAudioOnUserInteraction().then(() => {
+                TextToSpeechService.speak(text);
+            });
+        } else {
+            // Audio is ready, proceed with speaking
+            TextToSpeechService.speak(text);
+        }
     };
 
-    const pauseSpeech = () => {
-        speechSynthesis.pause();
-        setIsPaused(true);
+    const pauseSpeech = async () => {
+        if (TextToSpeechService.isSpeakingNow()) {
+            TextToSpeechService.pause();
+            return true;
+        }
+        return false;
     };
 
-    const resumeSpeech = () => {
-        speechSynthesis.resume();
-        setIsPaused(false);
+    const resumeSpeech = async () => {
+        if (TextToSpeechService.isPausedNow()) {
+            TextToSpeechService.resume();
+            return true;
+        }
+        return false;
     };
 
-    const stopSpeech = () => {
-        speechSynthesis.cancel();
-        setIsSpeaking(false);
-        setIsPaused(false);
-        setHighlightedText("");
-        setHighlightedSentenceIndex(0);
-        const { baseCommands } = generateCourseContentCommands(
-            section,
-            navigate,
-            VoiceRecognitionService,
-            speakText,
-            pauseSpeech,
-            resumeSpeech,
-            restartSpeech
-        );
-        setCommands(baseCommands);
+    const stopSpeech = async () => {
+        if (TextToSpeechService.isSpeakingNow()) {
+            TextToSpeechService.stop();
+        }
+        setHighlightedText(""); // Reset highlighted text
+        setHighlightedSentenceIndex(0); // Reset sentence index
+        setIsSpeaking(false); // Ensure speaking state is reset
+        setShowSpeechControls(false); // Hide speech controls
     };
 
     const restartSpeech = () => {
-        if (utteranceRef.current) {
-            speechSynthesis.cancel();
-            speakText(utteranceRef.current.text);
-        }
+        TextToSpeechService.restart();
     };
 
     const increaseZoom = () => {
@@ -178,13 +312,29 @@ const CourseContent = () => {
     };
 
     if (!section) {
-        return <p className="text-center">Section not found</p>;
+        return (
+            <div className="text-center p-10">
+                <p className="mb-5">Section not found or loading...</p>
+                <button
+                    onClick={initAudioOnUserInteraction}
+                    className="bg-blue-700 text-white px-4 py-2 rounded"
+                >
+                    Enable Voice Commands (Click here first)
+                </button>
+            </div>
+        );
     }
 
     return (
         <>
             <VoiceCommandWidget commands={commands} />
-            <section className="min-h-screen py-10" style={{ zoom: `${zoomLevel}%` }}>
+            {!isAudioInitialized && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded z-50">
+                    <p className="font-bold">Voice commands require user interaction</p>
+                    <p className="text-sm">Click anywhere on the page or this message to enable voice features</p>
+                </div>
+            )}
+            <section className="py-10" style={{ zoom: `${zoomLevel}%` }}>
                 <div className="container mx-auto px-4">
                     <div className="flex justify-end mb-4">
                         <button onClick={decreaseZoom} className="p-2 border rounded-lg mx-1">
@@ -239,6 +389,7 @@ const CourseContent = () => {
                                                     <HiVolumeUp />
                                                 </button>
                                                 <button
+                                                    ref={stopButtonRef}
                                                     onClick={stopSpeech}
                                                     className="bg-blue-700 text-white border-white hover:bg-blue-600 p-4 border-2 rounded-4xl mx-1 text-xl font-bold"
                                                 >

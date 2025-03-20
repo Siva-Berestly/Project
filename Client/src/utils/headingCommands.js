@@ -1,4 +1,6 @@
-const generateHeadingCommands = (course, navigate, VoiceRecognitionService) => {
+import FeedbackService from "./feedbackService";
+
+const generateHeadingCommands = (course, navigate) => {
   if (!course || !course.title) {
     console.error("Course or course title is undefined:", course);
     return [];
@@ -11,20 +13,25 @@ const generateHeadingCommands = (course, navigate, VoiceRecognitionService) => {
         "tell me about this course",
         "course details",
       ],
-      action: () => {
-        VoiceRecognitionService.speak(`The course name is ${course.title}.`);
-        VoiceRecognitionService.speak(`The sections are:`);
-        course.sections.forEach((section) => {
-          VoiceRecognitionService.speak(`${section.heading}.`);
-        });
+      action: async () => {
+        await FeedbackService.provideFeedback(
+          `The course name is ${course.title}.`
+        );
+        await FeedbackService.provideFeedback(`The sections are:`);
+        for (const section of course.sections) {
+          await FeedbackService.provideFeedback(`${section.heading}.`);
+        }
+        await FeedbackService.provideFeedback(
+          `You can open any section by saying "open section name".`
+        );
       },
       displayName: "course details",
     },
     {
       keyword: ["go to home", "go to home page", "go home"],
-      action: () => {
+      action: async () => {
+        await FeedbackService.provideFeedback("Navigating to home page.");
         navigate(`/`);
-        VoiceRecognitionService.speak("Navigating to home page");
       },
       displayName: "go to home",
     },
@@ -38,9 +45,22 @@ const generateHeadingCommands = (course, navigate, VoiceRecognitionService) => {
       }
       return {
         keyword: [`open ${section.heading.toLowerCase()}`],
-        action: () => {
-          navigate(`/coursecontent/${course.id}/${section.hid}`);
-          VoiceRecognitionService.speak(`Opening section ${section.heading}`);
+        action: async () => {
+          try {
+            // Provide feedback first
+            await FeedbackService.provideFeedback(
+              `Opening section ${section.heading}.`
+            );
+            // Then navigate after feedback has been delivered
+            setTimeout(() => {
+              navigate(`/coursecontent/${course.id}/${section.hid}`);
+            }, 100);
+          } catch (err) {
+            console.error(`Error opening section ${section.heading}:`, err);
+            await FeedbackService.provideFeedback(
+              "Sorry, I couldn't open that section."
+            );
+          }
         },
         displayName: `open ${section.heading}`,
       };

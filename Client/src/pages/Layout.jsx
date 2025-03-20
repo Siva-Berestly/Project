@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { HiMenu, HiX } from "react-icons/hi";
 import { FiSun, FiMoon } from "react-icons/fi";
 import { useState, useEffect } from "react";
-import { FaArrowUp } from "react-icons/fa";
+import { FaArrowUp, FaLock } from "react-icons/fa";
 import VoiceCommandWidget from "../components/VoiceCommandWidget";
 import VoiceRecognitionService from "../services/VoiceRecognitionService"; // Correct import
 
@@ -91,7 +91,7 @@ const Layout = () => {
     };
 
     return (
-        <>
+        <div className={`flex flex-col min-h-screen ${themeClasses.mainContent}`}>
             <VoiceCommandWidget commands={commands} />
             {/* Navbar */}
             <div className={`flex justify-between items-center p-4 px-5 border-b-1 relative ${themeClasses.navbar}`}>
@@ -133,11 +133,22 @@ const Layout = () => {
                                         isActive ? "poppins-bold underline" : "hover:underline"
                                     }>Help</NavLink>
                             </li>
+                            <li className="lg:hidden">
+                                <NavLink to="/admin/login"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        isActive ? "poppins-bold underline" : "hover:underline"
+                                    }>Admin</NavLink>
+                            </li>
                         </ul>
                     </nav>
 
                     {/* Profile Settings and Theme Toggle */}
                     <div className="flex items-center gap-6 p-4 lg:p-0">
+                        <NavLink to="/admin/login" className="hidden lg:flex items-center gap-2 poppins-medium hover:underline">
+                            <FaLock size={20} />
+                            <span>Admin</span>
+                        </NavLink>
                         <button onClick={toggleTheme} className="hidden lg:flex items-center gap-2 poppins-medium hover:underline">
                             {isDarkMode ? <FiSun size={24} /> : <FiMoon size={24} />}
                             <span>{isDarkMode ? 'Light' : 'Dark'} Mode</span>
@@ -147,8 +158,8 @@ const Layout = () => {
             </div>
 
             {/* Main Content */}
-            <main >
-                <div className={`${themeClasses.mainContent} border-b-1`}>
+            <main className={`flex-1 ${themeClasses.mainContent} border-b-1`}>
+                <div className={`${themeClasses.mainContent} h-full`}>
                     <div className="container mx-auto w-screen overflow-x-hidden">
                         <Outlet context={{ isDarkMode }} />
                     </div>
@@ -163,13 +174,13 @@ const Layout = () => {
             )}
 
             {/* Footer */}
-            <div className={themeClasses.navbar}>
+            <footer className={themeClasses.navbar}>
                 <div className="bg-[#202124] text-white p-4 text-center">
                     <p className="poppins-light text-sm">&copy; 2025 Product_Name by <span className="italic">Sivanesan</span></p>
                     <p className="poppins-light text-sm">Student of Bharathidasan University</p>
                 </div>
-            </div>
-        </>
+            </footer>
+        </div>
     )
 }
 

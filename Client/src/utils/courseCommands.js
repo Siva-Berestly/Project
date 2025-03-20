@@ -1,16 +1,18 @@
-const generateCourseCommands = (courses, navigate, VoiceRecognitionService) => {
+import FeedbackService from "./feedbackService";
+
+const generateCourseCommands = (courses, navigate) => {
   const baseCommands = [
     {
       keyword: ["what are the courses available"],
-      action: () => {
+      action: async () => {
         if (courses.length === 0) {
-          VoiceRecognitionService.speak("Courses are not available.");
+          await FeedbackService.provideFeedback("Courses are not available.");
         } else {
           const topCourses = courses.map((course) => course.title).join(", ");
-          VoiceRecognitionService.speak(
+          await FeedbackService.provideFeedback(
             `Available courses are: ${topCourses}.`
           );
-          VoiceRecognitionService.speak(
+          await FeedbackService.provideFeedback(
             `You can open any course by saying "open course name".`
           );
         }
@@ -19,8 +21,8 @@ const generateCourseCommands = (courses, navigate, VoiceRecognitionService) => {
     },
     {
       keyword: ["go to home", "go to home page", "go home"],
-      action: () => {
-        VoiceRecognitionService.speak("Navigating to home page");
+      action: async () => {
+        await FeedbackService.provideFeedback("Navigating to home page.");
         navigate(`/`);
       },
       displayName: "go to home",
@@ -36,9 +38,22 @@ const generateCourseCommands = (courses, navigate, VoiceRecognitionService) => {
       }
       return {
         keyword: [`open ${course.title.toLowerCase()}`],
-        action: () => {
-          navigate(`/heading/${course.title.toLowerCase()}`);
-          VoiceRecognitionService.speak(`Opening ${course.title} course`);
+        action: async () => {
+          try {
+            // Provide feedback first
+            await FeedbackService.provideFeedback(
+              `Opening ${course.title} course.`
+            );
+            // Then navigate after feedback has been delivered
+            setTimeout(() => {
+              navigate(`/heading/${course.title.toLowerCase()}`);
+            }, 100);
+          } catch (err) {
+            console.error("Error in opening course:", err);
+            await FeedbackService.provideFeedback(
+              "Sorry, I couldn't open that course."
+            );
+          }
         },
         displayName: `open ${course.title}`,
       };
@@ -48,11 +63,13 @@ const generateCourseCommands = (courses, navigate, VoiceRecognitionService) => {
   // Add help command
   const helpCommand = {
     keyword: ["help", "what are the commands available"],
-    action: () => {
+    action: async () => {
       const allCommands = [...baseCommands, ...courseCommands]
         .map((cmd) => cmd.displayName)
         .join(", ");
-      VoiceRecognitionService.speak(`Available commands are: ${allCommands}`);
+      await FeedbackService.provideFeedback(
+        `Available commands are: ${allCommands}`
+      );
     },
     displayName: "help",
   };

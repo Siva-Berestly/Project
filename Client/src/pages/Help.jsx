@@ -63,18 +63,17 @@ const Help = () => {
   return (
     <>
       <VoiceCommandWidget commands={commands} />
-      <div className="min-h-screen py-10" style={{ zoom: `${zoomLevel}%` }}>
+      <div className="py-10" style={{ zoom: `${zoomLevel}%` }}>
         <div className="container mx-auto px-4">
           <h1 className={`text-3xl text-center mb-8 poppins-bold ${themeClasses.text}`}>Help & Instructions</h1>
           <div className={`p-6 rounded-lg ${themeClasses.card}`}>
             <h2 className="text-xl mb-4 poppins-semibold">Voice Commands</h2>
             <ul className="list-disc pl-6 space-y-2 poppins-regular mb-10">
-              <li>Say "help" on any page to hear available commands</li>
-              <li>Say "start listening" to activate voice commands</li>
-              <li>Say "stop listening" to deactivate voice commands</li>
-              <li>Navigation: "go to home", "go to dashboard", "go to help"</li>
-              <li>Project navigation: "open [project name]"</li>
-              <li>Task management: "create task [task name]", "complete task [task name]"</li>
+              <li>Say <span className="poppins-bold">&quot;help&quot;</span> on any page to hear available commands.</li>
+              <li>Say <span className="poppins-bold">&quot;start listening&quot;</span> to activate voice commands.</li>
+              <li>Say <span className="poppins-bold">&quot;stop listening&quot;</span> to deactivate voice commands.</li>
+              <li>Navigation: <span className="poppins-bold">&quot;go to home&quot;, &quot;go back&quot;</span>.</li>
+              <li>Project navigation: <span className="poppins-bold">&quot;open [course name]&quot;</span>.</li>
             </ul>
             <h2 className="text-xl mb-4 poppins-semibold">Screen Readers</h2>
             <ul className="list-disc pl-6 space-y-2 poppins-regular">

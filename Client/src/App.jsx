@@ -9,6 +9,9 @@ import Heading from './pages/Heading';
 import CourseContent from './pages/CourseContent';
 import Quiz from './pages/Quiz';
 import Help from './pages/Help';
+import AdminLogin from './pages/AdminLogin';
+import ResetPassword from './pages/ResetPassword';
+import AdminDashboard from './pages/AdminDashboard';
 
 const App = () => {
   return (
@@ -21,6 +24,9 @@ const App = () => {
           <Route path="coursecontent/:courseId/:headingId" element={<CourseContent />} />
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/help" element={<Help />} />
+          <Route path="admin/login" element={<AdminLogin />} />
+          <Route path="admin/dashboard" element={<AdminDashboard />} />
+          <Route path="reset-password/:token" element={<ResetPassword />} />
         </Route>
       </Routes>
     </Router>

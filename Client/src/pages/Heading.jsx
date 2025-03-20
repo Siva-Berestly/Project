@@ -81,7 +81,7 @@ const Heading = () => {
     return (
         <>
             <VoiceCommandWidget commands={commands.filter(cmd => !cmd.displayName.startsWith("go to"))} />
-            <section className="min-h-screen py-10" style={{ zoom: `${zoomLevel}%` }}>
+            <section className="py-10" style={{ zoom: `${zoomLevel}%` }}>
                 <div className="container mx-auto px-4">
                     <div className="flex justify-end mb-4">
                         <button onClick={decreaseZoom} className="p-2 border rounded-lg mx-1">

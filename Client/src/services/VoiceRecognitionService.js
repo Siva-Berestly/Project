@@ -99,29 +99,70 @@ class VoiceRecognitionService {
 
   async initAudio() {
     if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
+      try {
+        this.audioContext = new (window.AudioContext ||
+          window.webkitAudioContext)();
+
+        // Create and play a silent sound to unlock audio on mobile
+        const buffer = this.audioContext.createBuffer(1, 1, 22050);
+        const source = this.audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.audioContext.destination);
+        source.start(0);
+      } catch (err) {
+        console.error("Error creating audio context:", err);
+      }
     }
-    if (this.audioContext.state === "suspended") {
-      await this.audioContext.resume();
+
+    if (this.audioContext && this.audioContext.state === "suspended") {
+      try {
+        await this.audioContext.resume();
+      } catch (err) {
+        console.error("Error resuming audio context:", err);
+      }
     }
+
     this.isAudioReady = true;
+    return this.isAudioReady;
   }
 
   async speak(text) {
     if (!this.isAudioReady) {
-      console.warn("Audio not ready. Requires user interaction.");
-      return;
+      console.warn("Audio not ready. Attempting to initialize...");
+      await this.initAudio();
     }
+
     return new Promise((resolve) => {
       const utterance = new SpeechSynthesisUtterance(text);
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const alternateVoice = voices.find(
+          (voice) =>
+            voice.name.includes("Google") || voice.name.includes("Microsoft")
+        );
+        if (alternateVoice) utterance.voice = alternateVoice;
+      }
+
+      utterance.rate = 1.1; // Slightly faster rate for command responses
+
       utterance.onstart = () => {
-        this.stop(); // Temporarily stop recognition
+        // Remove stopping recognition here:
+        // if (this.isListening) {
+        //     this.stop();
+        // }
       };
+
       utterance.onend = () => {
-        this.start(); // Restart recognition
-        resolve();
+        setTimeout(() => {
+          // Remove re-starting recognition here:
+          // if (wasListening) {
+          //     this.start();
+          // }
+          resolve();
+        }, 150);
       };
+
       speechSynthesis.speak(utterance);
     });
   }
@@ -183,18 +224,22 @@ class VoiceRecognitionService {
   }
 
   activate() {
-    console.log("Activating voice commands");
-    this.isActive = true;
-    if (this.callbacks.onActivate) {
-      this.callbacks.onActivate();
+    if (!this.isActive) {
+      console.log("Activating voice commands");
+      this.isActive = true;
+      if (this.callbacks.onActivate) {
+        this.callbacks.onActivate();
+      }
     }
   }
 
   deactivate() {
-    console.log("Deactivating voice commands");
-    this.isActive = false;
-    if (this.callbacks.onDeactivate) {
-      this.callbacks.onDeactivate();
+    if (this.isActive) {
+      console.log("Deactivating voice commands");
+      this.isActive = false;
+      if (this.callbacks.onDeactivate) {
+        this.callbacks.onDeactivate();
+      }
     }
   }
 
@@ -207,8 +252,22 @@ class VoiceRecognitionService {
   }
 
   async processCommands(transcript, commands) {
+    // Special handling for "start listening" command - should always work
+    if (transcript.includes("start listening")) {
+      console.log("Start listening command detected");
+      // Try to initialize audio if needed
+      if (!this.isAudioReady) {
+        await this.initAudio();
+      }
+
+      this.activate();
+      await this.speak("Voice commands activated");
+      return true;
+    }
+
     if (!this.isActive) return false;
 
+    // Regular command processing
     this.commandQueue.push({ transcript, commands });
     if (!this.isProcessingQueue) {
       this.processQueue();
@@ -225,7 +284,17 @@ class VoiceRecognitionService {
       let commandExecuted = false;
 
       for (const command of commands) {
-        if (transcript.includes(command.keyword)) {
+        // Properly check for keywords whether they're strings or arrays
+        const keywords = Array.isArray(command.keyword)
+          ? command.keyword
+          : [command.keyword];
+
+        // Check if any of the keywords match the transcript
+        const isMatch = keywords.some((keyword) =>
+          transcript.toLowerCase().includes(keyword.toLowerCase())
+        );
+
+        if (isMatch) {
           try {
             await command.action(transcript);
             commandExecuted = true;
@@ -237,8 +306,9 @@ class VoiceRecognitionService {
       }
 
       if (!commandExecuted) {
-        this.speak("Command not recognized");
+        await this.speak("Command not recognized");
       }
+
       // Small delay between commands
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
