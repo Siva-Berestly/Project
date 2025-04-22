@@ -82,7 +82,6 @@ const AdminLogin = () => {
         setResetLoading(true);
 
         try {
-            // Replace with your actual password reset API call
             const response = await fetch('/api/auth/forgot-password', {
                 method: 'POST',
                 headers: {
@@ -99,7 +98,6 @@ const AdminLogin = () => {
 
             setResetMessage('Password reset instructions sent to your email.');
 
-            // Display development information if available
             if (data.resetUrl) {
                 console.info('Development mode - Reset URL:', data.resetUrl);
                 if (!data.emailSent) {
@@ -107,7 +105,6 @@ const AdminLogin = () => {
                 }
             }
 
-            // Close the modal after 5 seconds to give time to read any development messages
             setTimeout(() => {
                 setShowForgotPassword(false);
             }, 5000);

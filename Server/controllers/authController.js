@@ -93,10 +93,7 @@ exports.forgotPassword = async (req, res) => {
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      // For security reasons, always return success even if email doesn't exist
-      return res.json({
-        message: "Password reset instructions sent if email exists",
-      });
+      return res.status(404).json({ message: "Email not found" });
     }
 
     // Generate reset token
@@ -116,13 +113,10 @@ exports.forgotPassword = async (req, res) => {
 
     // Try to send email
     let emailSent = false;
-
-    // Make sure transporter is set up
     const isTransporterValid = await setupTransporter();
 
     if (isTransporterValid) {
       try {
-        // Send email with reset link
         const mailOptions = {
           from: `"Study Platform" <${process.env.EMAIL_USER}>`,
           to: user.email,
@@ -144,18 +138,15 @@ exports.forgotPassword = async (req, res) => {
         console.log("Password reset email sent to:", user.email);
       } catch (emailError) {
         console.error("Failed to send email:", emailError);
-        // Continue with response - we'll handle the email failure but still save the token
       }
     }
 
     res.json({
       message: "Password reset instructions sent if email exists",
-      // Include token in response only in development environment
       ...(process.env.NODE_ENV === "development" && {
         resetToken,
         resetUrl,
         emailSent,
-        note: "Token is included only in development mode. In production, this would only be sent via email.",
       }),
     });
   } catch (error) {

@@ -1134,18 +1134,6 @@ const AdminDashboard = () => {
                         <div>
                             <h2 className="text-xl underline font-semibold mb-6 poppins-semibold">Account Settings</h2>
 
-                            {error && (
-                                <div className={`p-4 mb-6 rounded-md ${isDarkMode ? 'bg-red-900/20' : 'bg-red-100'} text-red-500`}>
-                                    {error}
-                                </div>
-                            )}
-
-                            {successMessage && (
-                                <div className={`p-4 mb-6 rounded-md ${isDarkMode ? 'bg-green-900/20' : 'bg-green-100'} text-green-500`}>
-                                    {successMessage}
-                                </div>
-                            )}
-
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Update Email Form */}
                                 <div className={`${themeClasses.card} p-6 rounded-lg border shadow-sm`}>
