@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
-const userName = "sivanesan";
-const Password = "sivanesan123";
-const database = "study-platform";
+const userName = "enter your username here"; // Replace with your username
+const Password = "enter your password here"; // Replace with your password
+const database = "enter your database name here"; // Replace with your database name
 
 // MongoDB connection string
 const mongoURI = `mongodb+srv://${userName}:${Password}@study-platform.rto1i.mongodb.net/${database}?retryWrites=true&w=majority`;

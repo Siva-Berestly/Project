@@ -69,9 +69,9 @@ ADMIN_EMAIL_APP_PASSWORD=<your_admin_email_app_password_for_nodemailer>
 
 The current `Server/Database/db.js` file appears to have **hardcoded MongoDB credentials**:
 ```javascript
-const userName = "sivanesan";
-const Password = "sivanesan123";
-const database = "study-platform";
+const userName = "enter your username";
+const Password = "enter your password";
+const database = "enter your database name";
 const mongoURI = `mongodb+srv://${userName}:${Password}@study-platform.rto1i.mongodb.net/${database}?retryWrites=true&w=majority`;
 ```
 It is **strongly recommended** to modify `Server/Database/db.js` to read these values (`userName`, `Password`, `database`, or the entire `mongoURI`) from environment variables (e.g., `process.env.MONGODB_URI`) instead of hardcoding them. This improves security and flexibility. For example:
@@ -117,11 +117,10 @@ To create an initial administrator account for the platform, you need to run a s
     ```bash
     node scripts/createAdminUser.js
     ```
-4.  **Follow the prompts:**
-    The script will likely prompt you to enter details for the new admin user, such as email and password. **Make a secure note of the credentials you provide.**
-5.  **Default Credentials / Access:**
-    Once the script completes successfully, you can use the email and password you provided to log in to the admin panel on the client application.
-6.  **Password Management:**
+4.  **Default Credentials / Access:**
+    Once the script completes successfully, you can use the **"admin"** as username and **"Admin@123"** as password.
+    
+5.  **Password Management:**
     After your initial login, it is recommended to change your admin password through the settings available in the admin dashboard.
 
 **Note on `verifyAdmin.js`:**
