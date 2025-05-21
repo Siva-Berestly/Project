@@ -8,7 +8,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Server application for an accessible study platform for people with disabilities, managing data and authentication.",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
