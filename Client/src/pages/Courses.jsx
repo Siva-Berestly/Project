@@ -1,28 +1,14 @@
 import { useOutletContext, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { FaPlus, FaMinus, FaUndo } from "react-icons/fa";
 import VoiceCommandWidget from "../components/VoiceCommandWidget";
 import VoiceRecognitionService from "../services/VoiceRecognitionService";
 import generateCourseCommands from "../utils/courseCommands";
 
 const Courses = () => {
-    const { isDarkMode } = useOutletContext();
+    const { isDarkMode, textSize } = useOutletContext();
     const navigate = useNavigate();
-    const [zoomLevel, setZoomLevel] = useState(100);
     const [courses, setCourses] = useState([]);
     const [commands, setCommands] = useState([]);
-
-    const increaseZoom = () => {
-        setZoomLevel(prev => Math.min(prev + 10, 150));
-    };
-
-    const decreaseZoom = () => {
-        setZoomLevel(prev => Math.max(prev - 10, 80));
-    };
-
-    const resetZoom = () => {
-        setZoomLevel(100);
-    };
 
     useEffect(() => {
         const fetchCourses = async () => {
@@ -62,27 +48,23 @@ const Courses = () => {
     return (
         <>
             <VoiceCommandWidget commands={commands} />
-            <section className="py-10" style={{ zoom: `${zoomLevel}%` }}>
-                <div className="container mx-auto px-4">
-                    <div className="flex justify-end mb-4">
-                        <button onClick={decreaseZoom} className="p-2 border rounded-lg mx-1">
-                            <FaMinus />
-                        </button>
-                        <button onClick={resetZoom} className="p-2 border rounded-lg mx-1">
-                            <FaUndo />
-                        </button>
-                        <button onClick={increaseZoom} className="p-2 border rounded-lg mx-1">
-                            <FaPlus />
-                        </button>
-                    </div>
-                    <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>Courses</h1>
-                    {/* Quick Access Tools */}
-                    <div className={`${themeClasses.card} border-1 p-6 rounded-lg mb-10`}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <section className="py-6 sm:py-10 w-full overflow-x-hidden">
+                <div className="w-full max-w-7xl mx-auto px-4">
+                    <h1 className={`text-2xl sm:text-3xl lg:text-4xl poppins-bold text-center mb-8 sm:mb-10 ${themeClasses.text} ${textSize} break-words`}>
+                        Courses
+                    </h1>
+                    {/* Course Grid */}
+                    <div className={`${themeClasses.card} border-1 p-4 sm:p-6 rounded-lg mb-6 sm:mb-10 w-full max-w-full`}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                             {courses.map((course, index) => (
-                                <div key={index} className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
-                                    <p className="text-lg text-center mx-10 poppins-medium mb-4">{course.title}</p>
-                                    <Link to={`/heading/${course.title.toLowerCase()}`} className={`p-2 px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto ${themeClasses.static_button}`}>
+                                <div key={index} className={`flex flex-col border p-4 sm:p-6 rounded-lg ${themeClasses.text} w-full max-w-full`}>
+                                    <p className={`text-center mx-2 sm:mx-4 lg:mx-10 poppins-medium mb-4 ${textSize} break-words leading-relaxed`}>
+                                        {course.title}
+                                    </p>
+                                    <Link
+                                        to={`/heading/${course.title.toLowerCase()}`}
+                                        className={`p-2 px-3 sm:px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto text-center text-sm sm:text-base ${themeClasses.static_button}`}
+                                    >
                                         Start Learning
                                     </Link>
                                 </div>

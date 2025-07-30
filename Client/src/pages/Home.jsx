@@ -1,28 +1,14 @@
 import { useOutletContext, Link, useNavigate } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
-import { FaPlus, FaMinus, FaUndo } from "react-icons/fa";
+import { useState, useEffect } from "react";
 import VoiceCommandWidget from "../components/VoiceCommandWidget";
 import VoiceRecognitionService from "../services/VoiceRecognitionService";
 import generateCourseCommands from "../utils/courseCommands";
 
 const Home = () => {
   const [courses, setCourses] = useState([]);
-  const [zoomLevel, setZoomLevel] = useState(100);
-  const { isDarkMode } = useOutletContext();
+  const { isDarkMode, textSize } = useOutletContext();
   const navigate = useNavigate();
   const [commands, setCommands] = useState([]);
-
-  const increaseZoom = useCallback(() => {
-    setZoomLevel(prev => Math.min(prev + 10, 150));
-  }, []);
-
-  const decreaseZoom = useCallback(() => {
-    setZoomLevel(prev => Math.max(prev - 10, 80));
-  }, []);
-
-  const resetZoom = useCallback(() => {
-    setZoomLevel(100);
-  }, []);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -49,7 +35,7 @@ const Home = () => {
       ...generateCourseCommands(courses, navigate, VoiceRecognitionService),
     ];
     setCommands(allCommands);
-  }, [courses, navigate, increaseZoom, decreaseZoom, resetZoom]);
+  }, [courses, navigate]);
 
   const themeClasses = {
     card: isDarkMode ? 'bg-[#202124] text-white border-white' : 'bg-white text-[#202124] border-[#202124]',
@@ -69,44 +55,23 @@ const Home = () => {
   return (
     <>
       <VoiceCommandWidget commands={commands.filter(cmd => cmd.displayName !== "go to home")} />
-      <div className="py-10" style={{ zoom: `${zoomLevel}%` }}>
-        <div className="container mx-auto px-4">
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={decreaseZoom}
-              className="p-2 border rounded-lg mx-1"
-              aria-label="Decrease Zoom"
-            >
-              <FaMinus />
-            </button>
-            <button
-              onClick={resetZoom}
-              className="p-2 border rounded-lg mx-1"
-              aria-label="Reset Zoom"
-            >
-              <FaUndo />
-            </button>
-            <button
-              onClick={increaseZoom}
-              className="p-2 border rounded-lg mx-1"
-              aria-label="Increase Zoom"
-            >
-              <FaPlus />
-            </button>
-          </div>
-          <h1 className={`text-3xl poppins-bold text-center mb-10 ${themeClasses.text}`}>
+      <div className="py-6 sm:py-10 w-full overflow-x-hidden">
+        <div className="w-full max-w-7xl mx-auto px-4">
+          <h1 className={`text-2xl sm:text-3xl lg:text-4xl poppins-bold text-center mb-8 sm:mb-10 ${themeClasses.text} ${textSize} break-words`}>
             Available Courses
           </h1>
           {courses.length === 0 ? (
-            <p className={`text-center ${themeClasses.text}`}>Courses are not available</p>
+            <p className={`text-center ${themeClasses.text} ${textSize}`}>Courses are not available</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {courses.map((course, index) => (
-                <div key={index} className={`flex flex-col border p-4 rounded-lg ${themeClasses.text}`}>
-                  <p className="text-center mx-10 poppins-medium mb-4">{course.title}</p>
+                <div key={index} className={`flex flex-col border p-4 sm:p-6 rounded-lg ${themeClasses.text} w-full max-w-full`}>
+                  <p className={`text-center mx-2 sm:mx-4 lg:mx-10 poppins-medium mb-4 ${textSize} break-words leading-relaxed`}>
+                    {course.title}
+                  </p>
                   <Link
                     to={`/heading/${course.title.toLowerCase()}`}
-                    className={`p-2 px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto ${themeClasses.static_button}`}
+                    className={`p-2 px-3 sm:px-5 rounded-4xl poppins-semibold cursor-pointer mx-auto text-center text-sm sm:text-base ${themeClasses.static_button}`}
                   >
                     Start Learning
                   </Link>

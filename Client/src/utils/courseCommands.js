@@ -1,18 +1,16 @@
-import FeedbackService from "./feedbackService";
-
-const generateCourseCommands = (courses, navigate) => {
+const generateCourseCommands = (courses, navigate, VoiceRecognitionService) => {
   const baseCommands = [
     {
       keyword: ["what are the courses available"],
       action: async () => {
         if (courses.length === 0) {
-          await FeedbackService.provideFeedback("Courses are not available.");
+          await VoiceRecognitionService.speak("Courses are not available.");
         } else {
           const topCourses = courses.map((course) => course.title).join(", ");
-          await FeedbackService.provideFeedback(
+          await VoiceRecognitionService.speak(
             `Available courses are: ${topCourses}.`
           );
-          await FeedbackService.provideFeedback(
+          await VoiceRecognitionService.speak(
             `You can open any course by saying "open course name".`
           );
         }
@@ -22,7 +20,7 @@ const generateCourseCommands = (courses, navigate) => {
     {
       keyword: ["go to home", "go to home page", "go home"],
       action: async () => {
-        await FeedbackService.provideFeedback("Navigating to home page.");
+        await VoiceRecognitionService.speak("Navigating to home page.");
         navigate(`/`);
       },
       displayName: "go to home",
@@ -41,7 +39,7 @@ const generateCourseCommands = (courses, navigate) => {
         action: async () => {
           try {
             // Provide feedback first
-            await FeedbackService.provideFeedback(
+            await VoiceRecognitionService.speak(
               `Opening ${course.title} course.`
             );
             // Then navigate after feedback has been delivered
@@ -50,7 +48,7 @@ const generateCourseCommands = (courses, navigate) => {
             }, 100);
           } catch (err) {
             console.error("Error in opening course:", err);
-            await FeedbackService.provideFeedback(
+            await VoiceRecognitionService.speak(
               "Sorry, I couldn't open that course."
             );
           }
@@ -67,7 +65,7 @@ const generateCourseCommands = (courses, navigate) => {
       const allCommands = [...baseCommands, ...courseCommands]
         .map((cmd) => cmd.displayName)
         .join(", ");
-      await FeedbackService.provideFeedback(
+      await VoiceRecognitionService.speak(
         `Available commands are: ${allCommands}`
       );
     },

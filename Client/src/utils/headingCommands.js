@@ -1,6 +1,4 @@
-import FeedbackService from "./feedbackService";
-
-const generateHeadingCommands = (course, navigate) => {
+const generateHeadingCommands = (course, navigate, VoiceRecognitionService) => {
   if (!course || !course.title) {
     console.error("Course or course title is undefined:", course);
     return [];
@@ -14,14 +12,14 @@ const generateHeadingCommands = (course, navigate) => {
         "course details",
       ],
       action: async () => {
-        await FeedbackService.provideFeedback(
+        await VoiceRecognitionService.speak(
           `The course name is ${course.title}.`
         );
-        await FeedbackService.provideFeedback(`The sections are:`);
+        await VoiceRecognitionService.speak(`The sections are:`);
         for (const section of course.sections) {
-          await FeedbackService.provideFeedback(`${section.heading}.`);
+          await VoiceRecognitionService.speak(`${section.heading}.`);
         }
-        await FeedbackService.provideFeedback(
+        await VoiceRecognitionService.speak(
           `You can open any section by saying "open section name".`
         );
       },
@@ -30,7 +28,7 @@ const generateHeadingCommands = (course, navigate) => {
     {
       keyword: ["go to home", "go to home page", "go home"],
       action: async () => {
-        await FeedbackService.provideFeedback("Navigating to home page.");
+        await VoiceRecognitionService.speak("Navigating to home page.");
         navigate(`/`);
       },
       displayName: "go to home",
@@ -48,7 +46,7 @@ const generateHeadingCommands = (course, navigate) => {
         action: async () => {
           try {
             // Provide feedback first
-            await FeedbackService.provideFeedback(
+            await VoiceRecognitionService.speak(
               `Opening section ${section.heading}.`
             );
             // Then navigate after feedback has been delivered
@@ -57,7 +55,7 @@ const generateHeadingCommands = (course, navigate) => {
             }, 100);
           } catch (err) {
             console.error(`Error opening section ${section.heading}:`, err);
-            await FeedbackService.provideFeedback(
+            await VoiceRecognitionService.speak(
               "Sorry, I couldn't open that section."
             );
           }

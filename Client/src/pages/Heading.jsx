@@ -3,15 +3,13 @@ import { useState, useEffect } from "react";
 import VoiceCommandWidget from "../components/VoiceCommandWidget";
 import VoiceRecognitionService from "../services/VoiceRecognitionService";
 import generateHeadingCommands from "../utils/headingCommands";
-import { FaPlus, FaMinus, FaUndo } from "react-icons/fa";
 
 const Heading = () => {
     const { courseName } = useParams();
-    const { isDarkMode } = useOutletContext();
+    const { isDarkMode, textSize } = useOutletContext();
     const navigate = useNavigate();
     const [course, setCourse] = useState(null);
     const [commands, setCommands] = useState([]);
-    const [zoomLevel, setZoomLevel] = useState(100);
 
     useEffect(() => {
         const fetchCourse = async () => {
@@ -54,18 +52,6 @@ const Heading = () => {
         setCommands((prevCommands) => [...prevCommands, homeCommand]);
     }, [navigate]);
 
-    const increaseZoom = () => {
-        setZoomLevel(prev => Math.min(prev + 10, 150));
-    };
-
-    const decreaseZoom = () => {
-        setZoomLevel(prev => Math.max(prev - 10, 80));
-    };
-
-    const resetZoom = () => {
-        setZoomLevel(100);
-    };
-
     const themeClasses = {
         card: isDarkMode ? 'bg-[#202124] text-white border-white' : 'bg-white text-[#202124] border-[#202124]',
         text: isDarkMode ? 'text-white' : 'text-[#202124]',
@@ -81,33 +67,24 @@ const Heading = () => {
     return (
         <>
             <VoiceCommandWidget commands={commands.filter(cmd => !cmd.displayName.startsWith("go to"))} />
-            <section className="py-10" style={{ zoom: `${zoomLevel}%` }}>
-                <div className="container mx-auto px-4">
-                    <div className="flex justify-end mb-4">
-                        <button onClick={decreaseZoom} className="p-2 border rounded-lg mx-1">
-                            <FaMinus />
-                        </button>
-                        <button onClick={resetZoom} className="p-2 border rounded-lg mx-1">
-                            <FaUndo />
-                        </button>
-                        <button onClick={increaseZoom} className="p-2 border rounded-lg mx-1">
-                            <FaPlus />
-                        </button>
-                    </div>
-                    <h3 className="text-2xl text-center mx-10 poppins-medium mb-5">{course.title}</h3>
-                    <div className={`flex flex-col p-4 rounded-lg ${themeClasses.text}`}>
+            <section className="py-6 sm:py-10 w-full overflow-x-hidden">
+                <div className="w-full max-w-7xl mx-auto px-4">
+                    <h1 className={`text-2xl sm:text-3xl lg:text-4xl poppins-bold text-center mb-8 sm:mb-10 ${themeClasses.text} ${textSize} break-words`}>
+                        {course.title}
+                    </h1>
+                    <div className={`flex flex-col p-4 sm:p-6 rounded-lg ${themeClasses.text} w-full max-w-full`}>
                         <div className="mb-5">
                             {course.sections.map((section, sectionIndex) => (
-                                <div key={sectionIndex} className="grid grid-cols-3 border rounded-xl mt-2 mb-5 p-5">
-                                    <div className="col-span-2 flex items-center ms-[20%]">
-                                        <p className="poppins-medium text-lg">
+                                <div key={sectionIndex} className="flex flex-col sm:grid sm:grid-cols-3 border rounded-xl mt-2 mb-5 p-4 sm:p-5 gap-4 sm:gap-0 w-full max-w-full overflow-x-hidden">
+                                    <div className="sm:col-span-2 flex items-center sm:ms-[20%] justify-center sm:justify-start">
+                                        <p className={`poppins-medium text-center sm:text-left ${textSize} break-words leading-relaxed`}>
                                             {sectionIndex + 1}. {section.heading}
                                         </p>
                                     </div>
-                                    <div className="col-span-1 flex justify-center">
+                                    <div className="sm:col-span-1 flex justify-center">
                                         <button
                                             onClick={() => navigate(`/coursecontent/${course.id}/${section.hid}`)}
-                                            className={`w-full max-w-[150px] text-center px-4 py-2 border rounded-lg poppins-medium cursor-pointer transition ${themeClasses.static_button}`}
+                                            className={`w-full max-w-[150px] text-center px-3 py-2 sm:px-4 sm:py-2 border rounded-lg poppins-medium cursor-pointer transition text-sm sm:text-base ${themeClasses.static_button}`}
                                         >
                                             View Content
                                         </button>

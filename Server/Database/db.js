@@ -1,16 +1,17 @@
 const mongoose = require("mongoose");
 
-const userName = "enter your username here"; // Replace with your username
-const Password = "enter your password here"; // Replace with your password
-const database = "enter your database name here"; // Replace with your database name
+const userName = "1111"; // Replace with your username
+const Password = "1111"; // Replace with your password
+const database = "study-platform"; // Replace with your database name
 
 // MongoDB connection string
-const mongoURI = `mongodb+srv://${userName}:${Password}@study-platform.rto1i.mongodb.net/${database}?retryWrites=true&w=majority`;
+const mongoURI = `mongodb+srv://${userName}:${Password}@${database}.hpq9ixn.mongodb.net/`;
+
 
 const connectDB = async () => {
   try {
     await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+      serverSelectionTimeoutMS: 30000,
     });
     console.log("MongoDB connected!");
   } catch (err) {

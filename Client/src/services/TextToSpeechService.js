@@ -1,3 +1,5 @@
+import VoiceRecognitionService from "./VoiceRecognitionService";
+
 class TextToSpeechService {
   constructor() {
     this.utterance = null;
@@ -11,6 +13,9 @@ class TextToSpeechService {
     this.onBoundaryCallback = null;
     this.audioContext = null;
     this.isAudioReady = false;
+    this._vrWasListening = false;
+    this._vrAutoRestartBackup = null;
+    this._vrCommandsActiveBackup = false;
   }
 
   async initAudio() {
@@ -58,11 +63,24 @@ class TextToSpeechService {
   }
 
   speak(text) {
+    // Stop recognition to prevent self-triggering
+    try {
+      // Record prior voice recognition state
+      this._vrWasListening = VoiceRecognitionService.isListening;
+      this._vrCommandsActiveBackup = VoiceRecognitionService.isCommandsActive();
+      if (this._vrWasListening) {
+        this._vrAutoRestartBackup = VoiceRecognitionService.autoRestart;
+        VoiceRecognitionService.setAutoRestart(false);
+        // Deactivate commands and stop recognition to prevent self-triggering
+        VoiceRecognitionService.deactivate();
+        VoiceRecognitionService.stop();
+      }
+    } catch (e) {
+      console.error("Error disabling voice recognition during TTS:", e);
+    }
     if (!this.isAudioReady) {
       console.warn("Audio not ready. Attempting to initialize...");
-      // Try to initialize and immediately use
       this.prepareAudioForUse();
-      // Small delay to allow initialization
       setTimeout(() => this.speak(text), 100);
       return false;
     }
@@ -86,8 +104,8 @@ class TextToSpeechService {
       if (naturalVoice) utterance.voice = naturalVoice;
     }
 
-    // Slightly slower, more natural pace for content
-    utterance.rate = 0.95;
+    // Slower, more comfortable pace for content reading
+    utterance.rate = 0.8;
 
     utterance.onstart = () => {
       this.isSpeaking = true;
@@ -99,6 +117,22 @@ class TextToSpeechService {
       this.isSpeaking = false;
       this.isPaused = false;
       if (this.onEndCallback) this.onEndCallback();
+      // Resume voice recognition after TTS
+      if (this._vrWasListening) {
+        VoiceRecognitionService.setAutoRestart(this._vrAutoRestartBackup);
+        VoiceRecognitionService.start()
+          .then(() => {
+            // Restore command active state
+            if (this._vrCommandsActiveBackup) {
+              VoiceRecognitionService.activate();
+            } else {
+              VoiceRecognitionService.deactivate();
+            }
+          })
+          .catch((e) =>
+            console.error("Error re-enabling voice recognition after TTS:", e)
+          );
+      }
     };
 
     utterance.onboundary = (event) => {

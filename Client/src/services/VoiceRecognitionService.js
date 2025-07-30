@@ -135,6 +135,14 @@ class VoiceRecognitionService {
     }
 
     return new Promise((resolve) => {
+      // Store current listening state
+      const wasListening = this.isListening;
+
+      // Stop listening to prevent feedback loop
+      if (this.isListening) {
+        this.stop();
+      }
+
       const utterance = new SpeechSynthesisUtterance(text);
 
       const voices = window.speechSynthesis.getVoices();
@@ -148,21 +156,22 @@ class VoiceRecognitionService {
 
       utterance.rate = 1.1; // Slightly faster rate for command responses
 
-      utterance.onstart = () => {
-        // Remove stopping recognition here:
-        // if (this.isListening) {
-        //     this.stop();
-        // }
-      };
-
       utterance.onend = () => {
         setTimeout(() => {
-          // Remove re-starting recognition here:
-          // if (wasListening) {
-          //     this.start();
-          // }
+          // Resume listening if it was listening before
+          if (wasListening) {
+            this.start();
+          }
           resolve();
-        }, 150);
+        }, 300); // Increased delay to ensure audio is completely finished
+      };
+
+      utterance.onerror = () => {
+        // Resume listening even if there's an error
+        if (wasListening) {
+          this.start();
+        }
+        resolve();
       };
 
       speechSynthesis.speak(utterance);

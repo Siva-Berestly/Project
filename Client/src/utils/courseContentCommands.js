@@ -1,4 +1,3 @@
-import FeedbackService from "./feedbackService";
 import TextToSpeechService from "../services/TextToSpeechService";
 
 const generateCourseContentCommands = (
@@ -26,7 +25,7 @@ const generateCourseContentCommands = (
       ],
       action: async () => {
         try {
-          await FeedbackService.provideFeedback("Reading the text aloud.");
+          await VoiceRecognitionService.speak("Reading the text aloud.");
           // Only read if section is available
           if (section && section.tcontent) {
             // Use setTimeout to give a moment between voice command response and text reading
@@ -35,13 +34,13 @@ const generateCourseContentCommands = (
                 speakText(section.tcontent);
               } catch (err) {
                 console.error("Error starting text reading:", err);
-                FeedbackService.provideFeedback(
+                VoiceRecognitionService.speak(
                   "I'm having trouble reading the text. Please try again."
                 );
               }
             }, 500);
           } else {
-            await FeedbackService.provideFeedback(
+            await VoiceRecognitionService.speak(
               "Sorry, content is not available yet."
             );
           }
@@ -60,7 +59,7 @@ const generateCourseContentCommands = (
         "go back",
       ],
       action: async () => {
-        await FeedbackService.provideFeedback("Going back to course page.");
+        await VoiceRecognitionService.speak("Going back to course page.");
         navigate("/courses");
       },
       displayName: "Go back to course page",
@@ -68,7 +67,7 @@ const generateCourseContentCommands = (
     {
       keyword: ["go to home", "go to home page", "go home"],
       action: async () => {
-        await FeedbackService.provideFeedback("Navigating to home page.");
+        await VoiceRecognitionService.speak("Navigating to home page.");
         navigate(`/`);
       },
       displayName: "Go to home",
@@ -80,6 +79,7 @@ const generateCourseContentCommands = (
     return { baseCommands, readingCommands: [] };
   }
 
+  // Keep these commands defined for button functionality, but they won't be used for voice commands
   const readingCommands = [
     {
       keyword: [
@@ -87,10 +87,19 @@ const generateCourseContentCommands = (
         "pause text",
         "pause reading",
         "pause",
-        "stop",
+        "pass",
+        "pass reading",
+        "pass reading text",
+        "pass reading the text",
       ],
       action: async () => {
         try {
+          // Stop listening before feedback
+          if (VoiceRecognitionService.isListening) {
+            VoiceRecognitionService.stop();
+            if (VoiceRecognitionService.callbacks.onEnd)
+              VoiceRecognitionService.callbacks.onEnd();
+          }
           // First pause the speech
           const paused = await pauseSpeech();
 
@@ -99,18 +108,13 @@ const generateCourseContentCommands = (
 
           // Then provide feedback if successfully paused
           if (paused) {
-            await FeedbackService.provideFeedback("Pausing the text.");
-
-            // Ensure voice recognition is listening after feedback
-            if (!VoiceRecognitionService.isListening) {
-              await VoiceRecognitionService.start();
-            }
+            await VoiceRecognitionService.speak("Pausing the text.");
           } else {
-            await FeedbackService.provideFeedback("Unable to pause the text.");
+            await VoiceRecognitionService.speak("Unable to pause the text.");
           }
         } catch (err) {
           console.error("Error in pause command:", err);
-          await FeedbackService.provideFeedback(
+          await VoiceRecognitionService.speak(
             "An error occurred while pausing."
           );
         }
@@ -125,9 +129,17 @@ const generateCourseContentCommands = (
         "resume",
         "continue",
         "continue reading",
+        "continue reading text",
+        "continue reading the text",
       ],
       action: async () => {
         try {
+          // Stop listening before feedback
+          if (VoiceRecognitionService.isListening) {
+            VoiceRecognitionService.stop();
+            if (VoiceRecognitionService.callbacks.onEnd)
+              VoiceRecognitionService.callbacks.onEnd();
+          }
           // First resume the speech
           const resumed = await resumeSpeech();
 
@@ -136,18 +148,13 @@ const generateCourseContentCommands = (
 
           // Then provide feedback if successfully resumed
           if (resumed) {
-            await FeedbackService.provideFeedback("Resuming the text.");
-
-            // Ensure voice recognition is listening after feedback
-            if (!VoiceRecognitionService.isListening) {
-              await VoiceRecognitionService.start();
-            }
+            await VoiceRecognitionService.speak("Resuming the text.");
           } else {
-            await FeedbackService.provideFeedback("Unable to resume the text.");
+            await VoiceRecognitionService.speak("Unable to resume the text.");
           }
         } catch (err) {
           console.error("Error in resume command:", err);
-          await FeedbackService.provideFeedback(
+          await VoiceRecognitionService.speak(
             "An error occurred while resuming."
           );
         }
@@ -158,6 +165,12 @@ const generateCourseContentCommands = (
       keyword: ["restart the text", "restart text from beginning", "restart"],
       action: async () => {
         try {
+          // Stop listening before feedback
+          if (VoiceRecognitionService.isListening) {
+            VoiceRecognitionService.stop();
+            if (VoiceRecognitionService.callbacks.onEnd)
+              VoiceRecognitionService.callbacks.onEnd();
+          }
           // First restart the speech
           restartSpeech();
 
@@ -165,12 +178,12 @@ const generateCourseContentCommands = (
           await new Promise((resolve) => setTimeout(resolve, 100));
 
           // Then provide feedback
-          await FeedbackService.provideFeedback(
+          await VoiceRecognitionService.speak(
             "Restarting the text from the beginning."
           );
         } catch (err) {
           console.error("Error in restart command:", err);
-          await FeedbackService.provideFeedback(
+          await VoiceRecognitionService.speak(
             "An error occurred while restarting."
           );
         }
@@ -178,9 +191,22 @@ const generateCourseContentCommands = (
       displayName: "Restart reading",
     },
     {
-      keyword: ["end reading","and reading", "finish reading", "terminate reading"],
+      keyword: [
+        "stop reading",
+        "stop text",
+        "end reading",
+        "and reading",
+        "finish reading",
+        "terminate reading",
+      ],
       action: async () => {
         try {
+          // Stop listening before feedback
+          if (VoiceRecognitionService.isListening) {
+            VoiceRecognitionService.stop();
+            if (VoiceRecognitionService.callbacks.onEnd)
+              VoiceRecognitionService.callbacks.onEnd();
+          }
           console.log("End reading command triggered");
 
           // Store the current state
@@ -197,16 +223,9 @@ const generateCourseContentCommands = (
           await new Promise((resolve) => setTimeout(resolve, 500));
 
           // Now provide feedback using the VoiceRecognitionService speak method
-          // instead of FeedbackService to avoid conflicts
+          // The speak method now automatically handles stopping/starting recognition
           console.log("Providing end reading feedback");
-          await VoiceRecognitionService.speak(
-            "Ending the reading."
-          );
-
-          // Make sure voice recognition is active
-          if (!VoiceRecognitionService.isListening) {
-            await VoiceRecognitionService.start();
-          }
+          await VoiceRecognitionService.speak("Ending the reading.");
         } catch (err) {
           console.error("Error in end reading command:", err);
           await VoiceRecognitionService.speak(

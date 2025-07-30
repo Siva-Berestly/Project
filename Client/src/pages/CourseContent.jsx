@@ -1,9 +1,9 @@
 import { useParams, useOutletContext, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { HiVolumeUp } from "react-icons/hi";
 import { IoPlay } from "react-icons/io5";
 import { IoMdPause } from "react-icons/io";
-import { FaPlus, FaMinus, FaUndo, FaStop } from "react-icons/fa";
+import { FaStop } from "react-icons/fa";
 import VoiceCommandWidget from "../components/VoiceCommandWidget";
 import VoiceRecognitionService from "../services/VoiceRecognitionService";
 import TextToSpeechService from "../services/TextToSpeechService";
@@ -13,10 +13,9 @@ const CourseContent = () => {
     const { courseId, headingId } = useParams();
     const navigate = useNavigate();
     const [section, setSection] = useState(null);
-    const { isDarkMode } = useOutletContext();
+    const { isDarkMode, textSize } = useOutletContext();
     const [selectedOption, setSelectedOption] = useState("text");
     const [highlightedSentenceIndex, setHighlightedSentenceIndex] = useState(0);
-    const [zoomLevel, setZoomLevel] = useState(100);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [showSpeechControls, setShowSpeechControls] = useState(false);
@@ -255,21 +254,21 @@ const CourseContent = () => {
         }
     };
 
-    const pauseSpeech = async () => {
+    const pauseSpeech = useCallback(async () => {
         if (TextToSpeechService.isSpeakingNow()) {
             TextToSpeechService.pause();
             return true;
         }
         return false;
-    };
+    }, []);
 
-    const resumeSpeech = async () => {
+    const resumeSpeech = useCallback(async () => {
         if (TextToSpeechService.isPausedNow()) {
             TextToSpeechService.resume();
             return true;
         }
         return false;
-    };
+    }, []);
 
     const stopSpeech = async () => {
         if (TextToSpeechService.isSpeakingNow()) {
@@ -284,17 +283,95 @@ const CourseContent = () => {
         TextToSpeechService.restart();
     };
 
-    const increaseZoom = () => {
-        setZoomLevel(prev => Math.min(prev + 10, 150));
-    };
+    // Add keyboard controls for text-to-speech: spacebar, shift+spacebar, ctrl+spacebar, escape
+    useEffect(() => {
+        const handleKeyboardControls = (event) => {
+            // Only handle when text is being read
+            if (!isSpeaking) return;
 
-    const decreaseZoom = () => {
-        setZoomLevel(prev => Math.max(prev - 10, 80));
-    };
+            if (event.code === 'Space') {
+                event.preventDefault();
+                event.stopPropagation();
 
-    const resetZoom = () => {
-        setZoomLevel(100);
-    };
+                if (event.shiftKey) {
+                    // Shift + Spacebar: Restart from beginning
+                    // Stop current reading first to avoid conflicts
+                    TextToSpeechService.stop();
+                    setIsSpeaking(false);
+                    setIsPaused(false);
+
+                    // Give feedback using a clean voice service call
+                    setTimeout(() => {
+                        const utterance = new SpeechSynthesisUtterance("Restarting from beginning");
+                        utterance.rate = 0.8;
+                        utterance.onend = () => {
+                            // After feedback completes, restart the reading
+                            setTimeout(() => {
+                                restartSpeech();
+                            }, 200);
+                        };
+                        speechSynthesis.speak(utterance);
+                    }, 100);
+                } else if (event.ctrlKey || event.metaKey) {
+                    // Ctrl + Spacebar (or Cmd + Spacebar on Mac): Stop reading
+                    stopSpeech();
+                    setTimeout(() => {
+                        VoiceRecognitionService.speak("Reading stopped");
+                    }, 100);
+                } else {
+                    // Spacebar only: Pause/Resume
+                    if (isPaused) {
+                        // For resume, don't interfere with speechSynthesis state
+                        // Just provide quick feedback and resume
+                        console.log("Attempting to resume...");
+
+                        // Use VoiceRecognitionService for feedback to avoid interfering with speechSynthesis
+                        VoiceRecognitionService.speak("Resuming reading");
+
+                        // Small delay then resume
+                        setTimeout(() => {
+                            if (TextToSpeechService.isPausedNow()) {
+                                resumeSpeech();
+                            } else {
+                                console.log("Not in paused state, restarting instead");
+                                restartSpeech();
+                            }
+                        }, 1000); // Wait for feedback to mostly complete
+                    } else {
+                        pauseSpeech();
+                        setTimeout(() => {
+                            VoiceRecognitionService.speak("Paused reading. Voice commands deactivated.");
+                            // Deactivate voice recognition
+                            if (VoiceRecognitionService.isListening) {
+                                VoiceRecognitionService.stop();
+                            }
+                            // Clear current commands to hide widget
+                            setCommands([]);
+                        }, 100);
+                    }
+                }
+
+                return false; // Prevent any further processing
+            } else if (event.code === 'Escape') {
+                // Escape key: Stop reading completely
+                event.preventDefault();
+                event.stopPropagation();
+                stopSpeech();
+                setTimeout(() => {
+                    VoiceRecognitionService.speak("Reading stopped");
+                }, 100);
+                return false;
+            }
+        };
+
+        // Add event listener to document for global capture, use capture phase
+        document.addEventListener('keydown', handleKeyboardControls, true);
+
+        // Cleanup function
+        return () => {
+            document.removeEventListener('keydown', handleKeyboardControls, true);
+        };
+    }, [isSpeaking, isPaused, resumeSpeech, pauseSpeech]); // Include functions in dependencies
 
     const themeClasses = {
         button: isDarkMode
@@ -303,16 +380,45 @@ const CourseContent = () => {
     };
 
     const renderVideoContent = (vcontent) => {
+        // Check if video content exists and is not empty
+        if (!vcontent || vcontent.trim() === '') {
+            return (
+                <div className="mx-auto flex justify-center mt-6 sm:mt-10 w-full max-w-4xl">
+                    <div className="text-center p-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
+                        <p className={`text-lg poppins-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            No videos available
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
         if (vcontent.includes("youtube.com") || vcontent.includes("youtu.be")) {
             const videoId = vcontent.split("v=")[1] || vcontent.split("/").pop();
             const embedUrl = `https://www.youtube.com/embed/${videoId}`;
             return (
-                <div className="mx-auto flex justify-center mt-10 rounded-lg overflow-hidden shadow-lg">
-                    <iframe width="800" height="450" src={embedUrl} frameBorder="0" allowFullScreen className="rounded-lg"></iframe>
+                <div className="mx-auto flex justify-center mt-6 sm:mt-10 w-full max-w-4xl">
+                    <div className="relative w-full" style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}>
+                        <iframe
+                            className="absolute top-0 left-0 w-full h-full rounded-lg shadow-lg"
+                            src={embedUrl}
+                            frameBorder="0"
+                            allowFullScreen
+                            title="Course Video"
+                        />
+                    </div>
                 </div>
             );
         } else {
-            return <video controls src={vcontent} className="mx-auto rounded-lg"></video>;
+            return (
+                <div className="mx-auto flex justify-center mt-6 sm:mt-10 w-full max-w-4xl">
+                    <video
+                        controls
+                        src={vcontent}
+                        className="w-full h-auto rounded-lg shadow-lg max-h-96 sm:max-h-[450px]"
+                    />
+                </div>
+            );
         }
     };
 
@@ -333,81 +439,66 @@ const CourseContent = () => {
     return (
         <>
             <VoiceCommandWidget commands={commands} />
-            {!isAudioInitialized && (
-                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded z-50">
-                    <p className="font-bold">Voice commands require user interaction</p>
-                    <p className="text-sm">Click anywhere on the page or this message to enable voice features</p>
-                </div>
-            )}
-            <section className="py-10" style={{ zoom: `${zoomLevel}%` }}>
-                <div className="container mx-auto px-4">
-                    <div className="flex justify-end mb-4">
-                        <button onClick={decreaseZoom} className="p-2 border rounded-lg mx-1">
-                            <FaMinus />
-                        </button>
-                        <button onClick={resetZoom} className="p-2 border rounded-lg mx-1">
-                            <FaUndo />
-                        </button>
-                        <button onClick={increaseZoom} className="p-2 border rounded-lg mx-1">
-                            <FaPlus />
-                        </button>
-                    </div>
-                    <h3 className="text-2xl text-center mx-10 poppins-medium mb-5">{section.heading}</h3>
-                    <div className="flex justify-center mt-2">
+            <section className="py-4 px-2 sm:py-6 sm:px-4 lg:py-10 lg:px-6 w-full max-w-full overflow-x-hidden">
+                <div className="w-full max-w-7xl mx-auto">
+                    <h1 className={`text-2xl sm:text-3xl lg:text-4xl poppins-bold text-center mb-8 sm:mb-10 ${themeClasses.text} ${textSize} break-words`}>
+                        {section.heading}
+                    </h1>
+                    <div className="flex justify-center mt-2 gap-2 flex-wrap">
                         <button
                             onClick={() => setSelectedOption('text')}
-                            className={`px-4 py-2 poppins-semibold border-2 rounded-lg mx-1 transition ${selectedOption === 'text' ? 'bg-blue-700 text-white' : themeClasses.button}`}
+                            className={`px-3 py-2 sm:px-4 sm:py-2 poppins-semibold border-2 rounded-lg transition text-sm sm:text-base ${selectedOption === 'text' ? 'bg-blue-700 text-white' : themeClasses.button}`}
                         >
                             Text
                         </button>
                         <button
                             onClick={() => setSelectedOption('video')}
-                            className={`px-4 py-2 poppins-semibold border-2 rounded-lg mx-1 transition ${selectedOption === 'video' ? 'bg-blue-700 text-white' : themeClasses.button}`}
+                            className={`px-3 py-2 sm:px-4 sm:py-2 poppins-semibold border-2 rounded-lg transition text-sm sm:text-base ${selectedOption === 'video' ? 'bg-blue-700 text-white' : themeClasses.button}`}
                         >
                             Video
                         </button>
                     </div>
-                    <div className="mt-4">
+                    <div className="mt-4 w-full">
                         {selectedOption === "text" ? (
-                            <div>
-                                <div className="flex justify-center">
+                            <div className="w-full">
+                                <div className="flex justify-center mb-4">
                                     {!isSpeaking ? (
                                         <button
                                             onClick={() => speakText(section.tcontent)}
-                                            className="bg-blue-700 text-white border-white hover:bg-blue-600 p-4 border-2 rounded-4xl mx-1 text-xl font-bold"
+                                            className="bg-blue-700 text-white border-white hover:bg-blue-600 p-3 sm:p-4 border-2 rounded-4xl text-lg sm:text-xl font-bold"
                                         >
                                             <HiVolumeUp />
                                         </button>
                                     ) : (
                                         showSpeechControls && (
-                                            <>
+                                            <div className="flex gap-2 flex-wrap justify-center">
                                                 <button
                                                     onClick={isPaused ? resumeSpeech : pauseSpeech}
-                                                    className="bg-blue-700 text-white border-white hover:bg-blue-600 p-4 border-2 rounded-4xl mx-1 text-xl font-bold"
+                                                    className="bg-blue-700 text-white border-white hover:bg-blue-600 p-3 sm:p-4 border-2 rounded-4xl text-lg sm:text-xl font-bold"
                                                 >
                                                     {isPaused ? <IoPlay /> : <IoMdPause />}
                                                 </button>
                                                 <button
                                                     onClick={restartSpeech}
-                                                    className="bg-blue-700 text-white border-white hover:bg-blue-600 p-4 border-2 rounded-4xl mx-1 text-xl font-bold"
+                                                    className="bg-blue-700 text-white border-white hover:bg-blue-600 p-3 sm:p-4 border-2 rounded-4xl text-lg sm:text-xl font-bold"
                                                 >
                                                     <HiVolumeUp />
                                                 </button>
                                                 <button
                                                     ref={stopButtonRef}
                                                     onClick={stopSpeech}
-                                                    className="bg-blue-700 text-white border-white hover:bg-blue-600 p-4 border-2 rounded-4xl mx-1 text-xl font-bold"
+                                                    className="bg-blue-700 text-white border-white hover:bg-blue-600 p-3 sm:p-4 border-2 rounded-4xl text-lg sm:text-xl font-bold"
                                                 >
                                                     <FaStop />
                                                 </button>
-                                            </>
+                                            </div>
                                         )
                                     )}
                                 </div>
-                                <div className="border p-5 rounded-lg mt-5">
-                                    <ul className="list-disc pl-5">
+                                <div className="border border-gray-300 dark:border-gray-600 p-3 sm:p-5 rounded-lg mt-5 w-full max-w-full overflow-x-hidden">
+                                    <ul className="list-disc pl-3 sm:pl-5 space-y-2">
                                         {section.tcontent.split(". ").map((sentence, index) => (
-                                            <li key={index} className="poppins-medium p-3 text-lg">
+                                            <li key={index} className={`poppins-medium p-2 sm:p-3 ${textSize} break-words leading-relaxed`}>
                                                 {sentence.split(" ").map((word, wordIndex) => {
                                                     const isHighlighted =
                                                         highlightedSentenceIndex === index && wordIndex === currentWordIndex;
@@ -426,7 +517,9 @@ const CourseContent = () => {
                                 </div>
                             </div>
                         ) : (
-                            renderVideoContent(section.vcontent)
+                            <div className="w-full max-w-full overflow-x-hidden">
+                                {renderVideoContent(section.vcontent)}
+                            </div>
                         )}
                     </div>
                 </div>
